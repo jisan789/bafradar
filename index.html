@@ -3,310 +3,784 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AERO-INTEL | Live Tactical Weather</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <title>Regional Weather Observation Dashboard</title>
   <style>
-    :root {
-      --bg: #05070a;
-      --sidebar: #0a0d14;
-      --card: #11151f;
-      --border: #1e2633;
-      --accent: #00f2ff;
-      --text: #e2e8f0;
-      --text-dim: #64748b;
-      --live: #00ff9d;
-    }
-
-    /* Standard Animations for the Loader */
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes spin-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
-    @keyframes swing {
-      0%, 100% { transform: rotate(-15deg); }
-      50% { transform: rotate(15deg); }
-    }
-    @keyframes waveDash {
-      0% { stroke-dasharray: 0, 120; stroke-dashoffset: 0; }
-      50% { stroke-dasharray: 60, 120; stroke-dashoffset: -30; }
-      100% { stroke-dasharray: 0, 120; stroke-dashoffset: -120; }
-    }
-    @keyframes bob {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-
-    .animate-spin-slow { animation: spin 8s linear infinite; }
-    .animate-spin-reverse { animation: spin-reverse 5s linear infinite; }
-    .animate-swing { animation: swing 1.8s ease-in-out infinite; transform-origin: center; }
-    .animate-wave { animation: waveDash 2.2s linear infinite; }
-    .animate-bob { animation: bob 2.4s ease-in-out infinite; }
-
-    * { box-sizing: border-box; }
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
       margin: 0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
+      background: #c9d3dc;
+      color: #111;
+      font-family: Tahoma, Verdana, Arial, sans-serif;
+      font-size: 13px;
     }
 
-    /* --- Sidebar --- */
-    aside {
-      width: 280px;
-      background: var(--sidebar);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      z-index: 100;
+    * {
+      box-sizing: border-box;
     }
 
-    .brand-area {
-      padding: 30px 24px;
-      border-bottom: 1px solid var(--border);
+    .page {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 0;
     }
 
-    .status-dot {
-      width: 8px; height: 8px; background: var(--live);
-      border-radius: 50%; box-shadow: 0 0 10px var(--live);
-      display: inline-block; margin-right: 8px;
+    .topbar {
+      background: #2f4f6f;
+      color: #fff;
+      border: 1px solid #162b40;
+      padding: 8px 12px;
+      margin-bottom: 0;
     }
 
-    nav { padding: 20px; flex: 1; }
-    .nav-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; display: block; }
-    
-    .nav-item {
-      padding: 12px 16px; border-radius: 8px; margin-bottom: 4px;
-      font-size: 13px; font-weight: 600; color: var(--accent);
-      background: rgba(0, 242, 255, 0.05); display: flex; align-items: center; gap: 10px;
+    .topbar h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 0.2px;
     }
 
-    /* --- Main --- */
-    main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-    
-    .top-bar {
-      padding: 20px 40px; background: rgba(5, 7, 10, 0.9);
-      backdrop-filter: blur(10px); display: flex; justify-content: space-between;
-      align-items: center; border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; z-index: 90;
+    .topbar p {
+      margin: 4px 0 0;
+      color: #dbe8f5;
+      font-size: 12px;
     }
 
-    #live-time { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--accent); }
+    .topbar .scope-note {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 8px;
+      border: 1px solid #9eb4c8;
+      background: #e4edf6;
+      color: #183149;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
 
-    .content-padding { padding: 40px; }
-
-    .weather-grid {
+    .layout {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-      gap: 24px;
+      grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(220px, 250px);
+      gap: 0;
+      align-items: start;
     }
 
-    .data-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
+    .panel {
+      background: #e8edf2;
+      border: 1px solid #7a8b9b;
+      box-shadow: inset 1px 1px 0 #fff;
+      min-width: 0;
+    }
+
+    .layout > .panel,
+    .layout > .right-column {
+      margin-top: -1px;
+    }
+
+    .layout > .panel:not(:first-child),
+    .layout > .right-column {
+      margin-left: -1px;
+    }
+
+    .panel-title {
+      margin: 0;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #fff;
+      background: #4d6d8b;
+      border-bottom: 1px solid #30485f;
+      text-transform: uppercase;
+    }
+
+    .panel-body {
+      padding: clamp(8px, 1.6vw, 14px);
+    }
+
+    .controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    button,
+    .small-link {
+      font: inherit;
+      padding: 5px 9px;
+      border: 1px solid #6c7d8c;
+      background: #d9e2ea;
+      color: #111;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    button:hover,
+    .small-link:hover {
+      background: #cbd7e1;
+    }
+
+    button.active {
+      background: #b7c8d8;
+      font-weight: bold;
+    }
+
+    fieldset {
+      margin: 0 0 8px;
+      padding: 6px;
+      border: 1px solid #8c9ba9;
+      background: #f2f5f8;
+    }
+
+    legend {
+      padding: 0 4px;
+      font-weight: bold;
+      color: #24384a;
+    }
+
+    .feed-list {
+      display: grid;
+      gap: 4px;
+    }
+
+    .feed-button {
+      width: 100%;
+      text-align: left;
+      padding: 6px;
+      border: 1px solid #8b99a7;
+      background: #f7f9fb;
+      cursor: pointer;
+      line-height: 1.3;
+    }
+
+    .feed-button:hover {
+      background: #eaf0f5;
+    }
+
+    .feed-button.active {
+      background: #cddbe7;
+      border-color: #5f778e;
+      font-weight: bold;
+    }
+
+    .feed-button span {
+      display: block;
+      font-size: 11px;
+      color: #4b5b68;
+      font-weight: normal;
+      margin-top: 2px;
+    }
+
+    .viewer-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .viewer-top h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      color: #1c3248;
+    }
+
+    .viewer-top p {
+      margin: 0;
+      color: #425462;
+      line-height: 1.35;
+    }
+
+    .status-box {
+      min-width: min(220px, 100%);
+      padding: 6px;
+      border: 1px solid #8b99a7;
+      background: #f7fafc;
+      text-align: right;
+    }
+
+    .status-box strong {
+      display: block;
+      color: #27445e;
+    }
+
+    .image-stage {
+      min-height: clamp(280px, 50vw, 520px);
+      border: 1px solid #7e8b97;
+      background: #aeb8c1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .image-stage img {
+      max-width: 100%;
+      max-height: 78vh;
+      display: block;
+      border: 1px solid #475764;
+      background: #fff;
+    }
+
+    .loading-note {
+      color: #20384e;
+      font-weight: bold;
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #f8fafc;
+    }
+
+    .info-table th,
+    .info-table td {
+      border: 1px solid #9aa7b3;
+      padding: 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .info-table th {
+      width: 42%;
+      background: #d9e3eb;
+      color: #20384d;
+    }
+
+    .section-stack {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .embed-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .satellite-grid {
+      margin-top: 8px;
+    }
+
+    .single-embed-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .embed-box {
+      border: 1px solid #8c9aa6;
+      background: #f5f8fa;
+      padding: 6px;
+    }
+
+    .embed-box h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: #20384d;
+    }
+
+    .embed-box p {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: #465865;
+      line-height: 1.35;
+    }
+
+    .embed-box iframe {
+      width: 100%;
+      height: clamp(260px, 38vw, 390px);
+      border: 1px solid #7e8a96;
+      background: #fff;
+    }
+
+    .embed-box iframe.square-frame {
+      width: min(100%, 600px);
+      height: auto;
+      aspect-ratio: 1 / 1;
+      display: block;
       overflow: hidden;
-      position: relative;
+      margin: 0 auto;
     }
 
-    .card-header {
-      padding: 12px 16px; background: rgba(0,0,0,0.2);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-
-    .tag-live {
-      font-family: 'JetBrains Mono', monospace; font-size: 10px;
-      color: var(--live); border: 1px solid rgba(0,255,157,0.3);
-      padding: 2px 8px; border-radius: 4px;
-    }
-
-    /* --- Loader Layer --- */
-    .img-wrapper {
-      position: relative;
+    .embed-box iframe.wide-frame {
       width: 100%;
-      aspect-ratio: 16/10;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: zoom-in;
+      height: auto;
+      aspect-ratio: 41 / 30;
+      display: block;
+      overflow: hidden;
+      margin: 0 auto;
     }
 
-    .loader-container {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 5;
-      background: var(--card);
+    .embed-box.satellite-box {
+      text-align: center;
     }
 
-    .img-wrapper img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      position: relative;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.5s ease;
+    .note {
+      margin: 0;
+      color: #425462;
+      line-height: 1.35;
     }
 
-    .img-wrapper img.loaded { opacity: 1; }
-    .img-wrapper img.loaded + .loader-container { display: none; }
-
-    /* --- Viewer --- */
-    #viewer {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-      z-index: 1000; flex-direction: column;
+    .site-footer {
+      border: 1px solid #7a8b9b;
+      border-top: 0;
+      background: #dce5ec;
+      padding: 10px 12px;
+      color: #24384a;
+      font-size: 11px;
+      line-height: 1.5;
     }
-    .viewer-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
-    .viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 20px; }
-    #v-img { max-width: 95%; max-height: 85vh; transition: transform 0.3s ease; }
 
-    @media (max-width: 768px) {
-      aside { display: none; }
-      .weather-grid { grid-template-columns: 1fr; }
+    .site-footer p {
+      margin: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+      }
+
+      .right-column {
+        grid-column: 1 / -1;
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .layout > .panel,
+      .layout > .right-column {
+        margin-left: 0;
+      }
+
+      .embed-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar h1 {
+        font-size: 18px;
+      }
+
+      .viewer-top {
+        flex-direction: column;
+      }
+
+      .status-box {
+        width: 100%;
+        text-align: left;
+      }
+
+      .image-stage {
+        min-height: 320px;
+      }
+
+      .info-table th,
+      .info-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .info-table th {
+        border-bottom: 0;
+      }
+
+      .info-table td {
+        border-top: 0;
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 12px;
+      }
+
+      .topbar {
+        padding: 8px 10px;
+      }
+
+      .topbar p {
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .panel-title {
+        padding: 6px;
+      }
+
+      .site-footer {
+        padding: 8px 10px;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      button,
+      .small-link,
+      .feed-button {
+        min-height: 40px;
+      }
+
+      .viewer-top h2 {
+        font-size: 16px;
+      }
+
+      .embed-box iframe {
+        height: min(72vw, 320px);
+      }
+
+      .image-stage {
+        min-height: 240px;
+        padding: 6px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <aside>
-    <div class="brand-area">
-      <div style="font-family: 'JetBrains Mono'; font-weight: 800; font-size: 18px;">
-        <span class="status-dot"></span>AERO-INTEL
-      </div>
-      <div style="font-size: 10px; color: var(--text-dim); margin-top: 5px;">LIVE MET-TERMINAL</div>
-    </div>
-    <nav>
-      <span class="nav-label">Active Feeds</span>
-      <div class="nav-item">📡 Radar Network (Live)</div>
-      <div class="nav-item">📡 Satellite Stream</div>
-    </nav>
-    <div style="padding: 20px; font-size: 11px; color: var(--text-dim); border-top: 1px solid var(--border);">
-       Warning: Verify UTC timestamps on imagery for mission-critical tasks.
-    </div>
-  </aside>
-
-  <main>
-    <header class="top-bar">
-      <div>
-        <h1 style="margin: 0; font-size: 18px;">Tactical Weather Dashboard</h1>
-        <div style="font-size: 11px; color: var(--text-dim);">Unified BAF Intelligence Feed</div>
-      </div>
-      <div style="text-align: right;">
-        <div id="live-time">00:00:00</div>
-        <div id="live-date" style="font-size: 10px; color: var(--text-dim); letter-spacing: 1px;">---</div>
-      </div>
+  <div class="page">
+    <header class="topbar">
+      <h1>Regional Weather Observation Dashboard</h1>
+      <p>Operational image viewer for Bangladesh, Bay of Bengal, nearby India radar coverage, wind fields and satellite frames.</p>
+      <div class="scope-note">Observation dashboard for Bangladesh</div>
     </header>
 
-    <div class="content-padding">
-      <div class="weather-grid" id="main-grid">
-        <!-- Cards injected by JS -->
-      </div>
-    </div>
-  </main>
+    <div class="layout">
+      <aside class="panel">
+        <h2 class="panel-title">Feed Selection</h2>
+        <div class="panel-body">
+          <div class="controls">
+            <button id="refreshButton" type="button">Refresh</button>
+            <button id="autoRefreshButton" type="button" class="active">Auto: On</button>
+          </div>
 
-  <div id="viewer">
-    <div class="viewer-header">
-      <div id="v-title" style="font-family: 'JetBrains Mono'; color: var(--accent);">IMAGE_INSPECTION</div>
-      <button onclick="closeViewer()" style="background: #ff4757; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">CLOSE</button>
+          <fieldset>
+            <legend>BAF</legend>
+            <div class="feed-list" id="group-baf"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>External Radar</legend>
+            <div class="feed-list" id="group-external"></div>
+          </fieldset>
+
+          <fieldset>
+            <legend>IMD</legend>
+            <div class="feed-list" id="group-imd"></div>
+          </fieldset>
+        </div>
+      </aside>
+
+      <main class="panel">
+        <h2 class="panel-title">Primary Viewer</h2>
+        <div class="panel-body">
+          <div class="viewer-top">
+            <div>
+              <h2 id="viewerTitle">Loading feed...</h2>
+              <p id="viewerDescription">Preparing observation display.</p>
+            </div>
+            <div class="status-box">
+              <strong id="statusText">Connecting</strong>
+              <span id="lastUpdated">Waiting for first update</span>
+            </div>
+          </div>
+
+          <div class="image-stage">
+            <div id="loadingMessage" class="loading-note">Loading latest image...</div>
+            <img id="mainImage" alt="Weather feed image" hidden>
+          </div>
+
+          <div class="section-stack">
+            <section class="panel">
+              <h2 class="panel-title">Wind Frames</h2>
+              <div class="panel-body">
+                <div class="embed-grid single-embed-grid">
+                  <div class="embed-box satellite-box">
+                    <h3>Windy Surface Wind</h3>
+                    <p>ECMWF wind layer over Bangladesh and the Bay of Bengal.</p>
+                    <iframe
+                      src="https://embed.windy.com/embed2.html?lat=23.839&lon=90.483&detailLat=15.352&detailLon=91.059&width=1450&height=700&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=default&radarRange=-1"
+                      title="Windy surface wind"
+                      loading="lazy"
+                      referrerpolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2 class="panel-title">Satellite Frames</h2>
+              <div class="panel-body">
+                <p class="note">These RealEarth links are loaded in frames. If your browser blocks `http` content, use the direct open links.</p>
+                <div class="embed-grid satellite-grid">
+                  <div class="embed-box">
+                    <h3>Himawari B13 Gradient</h3>
+                    <p>Updated infrared gradient satellite view focused more tightly on Bangladesh.</p>
+                    <iframe
+                      class="square-frame"
+                      src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13-GRAD.100&center=23.836338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13-GRAD&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&"
+                      title="RealEarth Himawari B13 Gradient"
+                      loading="lazy"
+                      scrolling="no"
+                    ></iframe>
+                  </div>
+
+                  <div class="embed-box">
+                    <h3>Himawari B13</h3>
+                    <p>Current Himawari Band 13 satellite image centered on Bangladesh.</p>
+                    <iframe
+                      class="wide-frame"
+                      src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&fbclid=IwAR2BZ4YwRI1pU3S6De7glPRVa8A9A4Bq4rYXqA6WicvnrvUHp1JvWK79I4g"
+                      title="RealEarth Himawari B13"
+                      loading="lazy"
+                      scrolling="no"
+                    ></iframe>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <aside class="panel right-column">
+        <h2 class="panel-title">Feed Status</h2>
+        <div class="panel-body">
+          <table class="info-table">
+            <tr>
+              <th>Selected Feed</th>
+              <td id="selectedFeed">Loading...</td>
+            </tr>
+            <tr>
+              <th>Category</th>
+              <td id="selectedCategory">Loading...</td>
+            </tr>
+            <tr>
+              <th>Refresh Mode</th>
+              <td id="refreshMode">Automatic every 5 minutes</td>
+            </tr>
+          </table>
+
+          <fieldset style="margin-top: 8px;">
+            <legend>Operator Notes</legend>
+            <p class="note">Use the left panel to switch quickly between radar feeds. The main viewer always shows one primary image at a time for faster inspection.</p>
+            <p class="note">Embedded wind and satellite panels stay available below the main viewer for cross-checking larger-scale conditions.</p>
+          </fieldset>
+        </div>
+      </aside>
     </div>
-    <div class="viewer-body">
-      <img src="" id="v-img" onclick="toggleZoom()" title="Click to zoom">
-    </div>
+
+    <footer class="site-footer">
+      <p>Developed by Jisan</p>
+      <p>Thanks to BMD, BAF, and IMD</p>
+    </footer>
   </div>
 
   <script>
-    const FEEDS = [
-      { id: 'ZHR_PRIMARY', src: 'https://wx.baf.mil.bd/FTP_Folder/zhrradar.jpg' },
-      { id: 'ZHR_SECONDARY', src: 'https://wx.baf.mil.bd/FTP_Folder/zhrradar2.jpg' },
-      { id: 'ZHR_TERTIARY', src: 'https://wx.baf.mil.bd/FTP_Folder/zhrradar3.jpg' },
-      { id: 'MOS_RADAR', src: 'https://wx.baf.mil.bd/FTP_Folder/mosradar.jpg' },
-      { id: 'MTR_ANALYSIS', src: 'https://wx.baf.mil.bd/FTP_Folder/mtr.jpg' },
-      { id: 'ZHR_ANIM_LOOP', src: 'https://wx.baf.mil.bd/FTP_Folder/ZHRANIM.gif' },
-      { id: 'MTR_ANIM_LOOP', src: 'https://wx.baf.mil.bd/FTP_Folder/mtranim.gif' }
+    const feeds = [
+      {
+        id: "mosradar",
+        group: "baf",
+        category: "BAF",
+        name: "MOS Radar",
+        description: "Primary weather radar image from the Bangladesh Air Force weather server.",
+        url: "https://wx.baf.mil.bd/ftp_folder/mosradar.jpg"
+      },
+      {
+        id: "mtr",
+        group: "baf",
+        category: "BAF",
+        name: "MTR",
+        description: "Additional BAF observation image.",
+        url: "https://wx.baf.mil.bd/FTP_Folder/mtr.jpg"
+      },
+      {
+        id: "zhrradar",
+        group: "baf",
+        category: "BAF",
+        name: "ZHR Radar",
+        description: "BAF radar product for quick situational awareness.",
+        url: "https://wx.baf.mil.bd/FTP_Folder/zhrradar.jpg"
+      },
+      {
+        id: "force13-bob",
+        group: "external",
+        category: "External Radar",
+        name: "Force 13 BOB Radar",
+        description: "Regional Bay of Bengal radar image from Force 13.",
+        url: "https://www.force-13.com/product/radar/bob/latest.png"
+      },
+      {
+        id: "imd-caz-kol",
+        group: "imd",
+        category: "IMD",
+        name: "IMD Kolkata CAZ",
+        description: "Kolkata composite reflectivity radar product.",
+        url: "https://mausam.imd.gov.in/Radar/caz_kol.gif"
+      },
+      {
+        id: "imd-ppz-kol",
+        group: "imd",
+        category: "IMD",
+        name: "IMD Kolkata PPZ",
+        description: "Kolkata PPZ precipitation radar product.",
+        url: "https://mausam.imd.gov.in/Radar/ppz_kol.gif"
+      },
+      {
+        id: "imd-caz-agt",
+        group: "imd",
+        category: "IMD",
+        name: "IMD Agartala CAZ",
+        description: "Agartala composite reflectivity radar product.",
+        url: "https://mausam.imd.gov.in/Radar/caz_agt.gif"
+      },
+      {
+        id: "imd-ppz-agt",
+        group: "imd",
+        category: "IMD",
+        name: "IMD Agartala PPZ",
+        description: "Agartala PPZ precipitation radar product.",
+        url: "https://mausam.imd.gov.in/Radar/ppz_agt.gif"
+      }
     ];
 
-    const LOADER_HTML = `
-      <div class="loader-container">
-        <div style="width: 100px; height: 100px; color: #0892A5; position: relative;">
-          <svg viewBox="0 0 120 120" style="width: 100%; height: 100%;">
-            <g class="animate-spin-slow" style="transform-origin: center;">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="3" opacity="0.25"></circle>
-              <g stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.6">
-                <line x1="60" y1="6" x2="60" y2="12"></line>
-                <line x1="60" y1="108" x2="60" y2="114"></line>
-                <line x1="6" y1="60" x2="12" y2="60"></line>
-                <line x1="108" y1="60" x2="114" y2="60"></line>
-              </g>
-            </g>
-            <g class="animate-spin-reverse" style="transform-origin: center;">
-              <polygon points="60,22 66,60 60,98 54,60" fill="#C9910D" opacity="0.95"></polygon>
-              <polygon points="22,60 60,66 98,60 60,54" fill="#0892A5" opacity="0.9"></polygon>
-            </g>
-            <g class="animate-swing">
-              <line x1="60" y1="60" x2="60" y2="18" stroke="#C9910D" stroke-width="3" stroke-linecap="round"></line>
-            </g>
-            <path d="M12 82 Q 24 76 36 82 T 60 82 T 84 82 T 108 82" fill="none" stroke="#0892A5" stroke-width="3" class="animate-wave"></path>
-          </svg>
-        </div>
-      </div>
-    `;
+    const refreshIntervalMs = 5 * 60 * 1000;
+    let activeFeedId = feeds[0].id;
+    let autoRefreshEnabled = true;
+    let refreshTimer = null;
 
-    function init() {
-      const grid = document.getElementById('main-grid');
-      FEEDS.forEach(feed => {
-        const card = document.createElement('div');
-        card.className = 'data-card';
-        card.innerHTML = `
-          <div class="card-header">
-            <span style="font-family: 'JetBrains Mono'; font-size: 11px;">${feed.id}</span>
-            <span class="tag-live">LIVE</span>
-          </div>
-          <div class="img-wrapper" onclick="openViewer('${feed.src}', '${feed.id}')">
-            <img src="${feed.src}" onload="this.classList.add('loaded')" onerror="handleError(this)">
-            ${LOADER_HTML}
-          </div>
-        `;
-        grid.appendChild(card);
+    const groupTargets = {
+      baf: document.getElementById("group-baf"),
+      external: document.getElementById("group-external"),
+      imd: document.getElementById("group-imd")
+    };
+
+    const viewerTitle = document.getElementById("viewerTitle");
+    const viewerDescription = document.getElementById("viewerDescription");
+    const statusText = document.getElementById("statusText");
+    const lastUpdated = document.getElementById("lastUpdated");
+    const loadingMessage = document.getElementById("loadingMessage");
+    const mainImage = document.getElementById("mainImage");
+    const selectedFeed = document.getElementById("selectedFeed");
+    const selectedCategory = document.getElementById("selectedCategory");
+    const refreshMode = document.getElementById("refreshMode");
+    const refreshButton = document.getElementById("refreshButton");
+    const autoRefreshButton = document.getElementById("autoRefreshButton");
+
+    function getFeedById(id) {
+      return feeds.find((feed) => feed.id === id) || feeds[0];
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("en-BD", {
+        dateStyle: "medium",
+        timeStyle: "medium"
+      }).format(date);
+    }
+
+    function renderFeedGroups() {
+      Object.values(groupTargets).forEach((target) => {
+        target.innerHTML = "";
+      });
+
+      feeds.forEach((feed) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "feed-button";
+        button.dataset.feedId = feed.id;
+        button.innerHTML = `${feed.name}<span>${feed.description}</span>`;
+        button.addEventListener("click", () => {
+          if (activeFeedId !== feed.id) {
+            activeFeedId = feed.id;
+            updateFeedDisplay();
+            loadActiveFeed();
+          }
+        });
+
+        groupTargets[feed.group].appendChild(button);
       });
     }
 
-    function handleError(img) {
-      img.style.display = 'none';
-      img.nextElementSibling.innerHTML = '<div style="color:#ff4757; font-size:10px; font-family:JetBrains Mono">FEED_OFFLINE</div>';
+    function updateFeedDisplay() {
+      const activeFeed = getFeedById(activeFeedId);
+
+      viewerTitle.textContent = activeFeed.name;
+      viewerDescription.textContent = activeFeed.description;
+      selectedFeed.textContent = activeFeed.name;
+      selectedCategory.textContent = activeFeed.category;
+
+      document.querySelectorAll(".feed-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.feedId === activeFeedId);
+      });
     }
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('live-time').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
-      document.getElementById('live-date').innerText = now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase();
+    function setLoadingState(message) {
+      loadingMessage.hidden = false;
+      loadingMessage.textContent = message;
+      mainImage.hidden = true;
+      statusText.textContent = "Refreshing";
     }
 
-    function openViewer(src, id) {
-      const v = document.getElementById('viewer');
-      document.getElementById('v-img').src = src;
-      document.getElementById('v-title').innerText = `INSPECTING_NODE: ${id}`;
-      v.style.display = 'flex';
+    function updateRefreshModeLabel() {
+      refreshMode.textContent = autoRefreshEnabled ? "Automatic every 5 minutes" : "Manual refresh only";
+      autoRefreshButton.textContent = autoRefreshEnabled ? "Auto: On" : "Auto: Off";
+      autoRefreshButton.classList.toggle("active", autoRefreshEnabled);
     }
 
-    function closeViewer() {
-      document.getElementById('viewer').style.display = 'none';
-      document.getElementById('v-img').style.transform = 'scale(1)';
+    function setAutoRefresh(enabled) {
+      autoRefreshEnabled = enabled;
+      updateRefreshModeLabel();
+
+      if (refreshTimer) {
+        window.clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+
+      if (enabled) {
+        refreshTimer = window.setInterval(loadActiveFeed, refreshIntervalMs);
+      }
     }
 
-    let zoomed = false;
-    function toggleZoom() {
-      zoomed = !zoomed;
-      document.getElementById('v-img').style.transform = zoomed ? 'scale(2)' : 'scale(1)';
-      document.getElementById('v-img').style.cursor = zoomed ? 'zoom-out' : 'zoom-in';
+    function loadActiveFeed() {
+      const activeFeed = getFeedById(activeFeedId);
+      const cacheBustedUrl = `${activeFeed.url}${activeFeed.url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+
+      setLoadingState(`Loading ${activeFeed.name}...`);
+
+      const probe = new Image();
+      probe.onload = () => {
+        mainImage.src = cacheBustedUrl;
+        mainImage.alt = `${activeFeed.name} weather image`;
+        mainImage.hidden = false;
+        loadingMessage.hidden = true;
+        statusText.textContent = "Image loaded";
+        lastUpdated.textContent = formatDate(new Date());
+      };
+
+      probe.onerror = () => {
+        loadingMessage.hidden = false;
+        loadingMessage.textContent = "Image not available right now. Try refresh again.";
+        mainImage.hidden = true;
+        statusText.textContent = "Feed unavailable";
+      };
+
+      probe.src = cacheBustedUrl;
     }
 
-    setInterval(updateClock, 1000);
-    init();
-    updateClock(); 
+    refreshButton.addEventListener("click", loadActiveFeed);
+    autoRefreshButton.addEventListener("click", () => setAutoRefresh(!autoRefreshEnabled));
+
+    renderFeedGroups();
+    updateFeedDisplay();
+    setAutoRefresh(true);
+    loadActiveFeed();
   </script>
 </body>
 </html>
