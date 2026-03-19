@@ -314,6 +314,10 @@
       margin: 0 auto;
     }
 
+    .embed-box iframe.click-blocked {
+      pointer-events: none;
+    }
+
     .embed-box.satellite-box {
       text-align: center;
     }
@@ -436,6 +440,13 @@
         height: min(72vw, 320px);
       }
 
+      .embed-box iframe.square-frame,
+      .embed-box iframe.wide-frame {
+        width: min(100%, 600px);
+        height: auto;
+        aspect-ratio: 1 / 1;
+      }
+
       .image-stage {
         min-height: 240px;
         padding: 6px;
@@ -506,6 +517,7 @@
                     <p>ECMWF wind layer over Bangladesh and the Bay of Bengal.</p>
                     <iframe
                       src="https://embed.windy.com/embed2.html?lat=23.839&lon=90.483&detailLat=15.352&detailLon=91.059&width=1450&height=700&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=default&radarRange=-1"
+                      class="click-blocked"
                       title="Windy surface wind"
                       loading="lazy"
                       referrerpolicy="no-referrer-when-downgrade"
@@ -536,7 +548,7 @@
                     <h3>Himawari B13</h3>
                     <p>Current Himawari Band 13 satellite image centered on Bangladesh.</p>
                     <iframe
-                      class="wide-frame"
+                      class="square-frame"
                       src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&fbclid=IwAR2BZ4YwRI1pU3S6De7glPRVa8A9A4Bq4rYXqA6WicvnrvUHp1JvWK79I4g"
                       title="RealEarth Himawari B13"
                       loading="lazy"
