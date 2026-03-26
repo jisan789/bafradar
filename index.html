@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>আঞ্চলিক আবহাওয়া পর্যবেক্ষণ</title>
   
   <!-- FontAwesome for Icons -->
@@ -27,6 +27,7 @@
       /* System */
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       --radius: 8px;
       /* Applied Bengali Font */
       --font-family: 'Hind Siliguri', sans-serif;
@@ -59,7 +60,7 @@
 
     .offline-card {
       background: #1e293b; padding: 2.5rem; border-radius: var(--radius);
-      text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      text-align: center; box-shadow: var(--shadow-lg);
     }
     .offline-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
     .offline-card p { color: #94a3b8; }
@@ -152,7 +153,7 @@
     .weather-metric span { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
 
     /* 7-Day Forecast Grid */
-    .forecast-summary { margin-bottom: 2rem; }
+    .forecast-summary { margin-bottom: 0.5rem; }
     .forecast-summary h2 {
       font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
     }
@@ -218,17 +219,59 @@
     /* Tablets */
     @media (min-width: 768px) { .satellite-grid { grid-template-columns: 1fr 1fr; } }
 
-    /* Mobile View */
+    /* Mobile View (App-like Bottom Navigation) */
     @media (max-width: 1023px) {
+      body {
+        /* Adds space at the bottom so content doesn't get hidden behind fixed nav */
+        padding-bottom: calc(75px + env(safe-area-inset-bottom));
+      }
+
       .mobile-nav {
-        display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 1rem; margin-bottom: 0.5rem; scrollbar-width: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--surface-color);
+        display: flex;
+        justify-content: space-around;
+        padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom)) 0;
+        margin: 0;
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
       }
-      .mobile-nav::-webkit-scrollbar { display: none; }
+      
       .mobile-nav-button {
-        flex: 1; min-width: max-content; background: var(--surface-color); border: 1px solid var(--border-color);
-        padding: 0.75rem 1.25rem; border-radius: 999px; font-weight: 600; font-size: 1.05rem; color: var(--text-muted); transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        flex: 1;
+        background: transparent;
+        border: none;
+        padding: 0.5rem;
+        border-radius: var(--radius);
+        font-weight: 600;
+        font-size: 0.75rem; /* Smaller text for bottom app nav */
+        color: var(--text-muted);
+        transition: color 0.2s ease;
       }
-      .mobile-nav-button.active { background: var(--primary-color); color: white; border-color: var(--primary-color); box-shadow: var(--shadow-sm); }
+      
+      .mobile-nav-button .fa-icon {
+        margin: 0;
+        font-size: 1.3rem; /* Prominent icons */
+        color: var(--text-muted);
+        transition: color 0.2s ease;
+      }
+      
+      .mobile-nav-button.active {
+        color: var(--primary-color);
+      }
+      
+      .mobile-nav-button.active .fa-icon {
+        color: var(--primary-color);
+      }
       
       .weather-metric { flex: 1 1 calc(50% - 10px); }
 
@@ -259,11 +302,20 @@
       <div class="scope-note">বাংলাদেশের আবহাওয়া</div>
     </header>
 
-    <!-- Mobile Navigation Tabs -->
+    <!-- App-like Mobile Bottom Navigation -->
     <nav class="mobile-nav" aria-label="Mobile section navigation">
-      <button type="button" class="mobile-nav-button active" data-mobile-panel="radar-view"><i class="fa-solid fa-satellite-dish fa-icon"></i> রাডার</button>
-      <button type="button" class="mobile-nav-button" data-mobile-panel="wind-view"><i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহ</button>
-      <button type="button" class="mobile-nav-button" data-mobile-panel="satellite-view"><i class="fa-solid fa-earth-asia fa-icon"></i> স্যাটেলাইট</button>
+      <button type="button" class="mobile-nav-button active" data-mobile-panel="weather-view">
+        <i class="fa-solid fa-cloud-sun fa-icon"></i> আবহাওয়া
+      </button>
+      <button type="button" class="mobile-nav-button" data-mobile-panel="radar-view">
+        <i class="fa-solid fa-satellite-dish fa-icon"></i> রাডার
+      </button>
+      <button type="button" class="mobile-nav-button" data-mobile-panel="wind-view">
+        <i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহ
+      </button>
+      <button type="button" class="mobile-nav-button" data-mobile-panel="satellite-view">
+        <i class="fa-solid fa-earth-asia fa-icon"></i> স্যাটেলাইট
+      </button>
     </nav>
 
     <!-- Unified Responsive Layout -->
@@ -292,21 +344,11 @@
       <!-- Right Content: Everything Else -->
       <main class="main-content">
         
-        <!-- Radar View Section -->
-        <section class="panel mobile-section" data-mobile-group="radar-view">
-          <h2 class="panel-title"><i class="fa-solid fa-display fa-icon"></i> রাডার চিত্র</h2>
+        <!-- NEW: Weather Overview Section (Shown at the very top/first) -->
+        <section class="panel mobile-section" data-mobile-group="weather-view">
+          <h2 class="panel-title"><i class="fa-solid fa-temperature-half fa-icon"></i> আবহাওয়ার একনজর</h2>
           <div class="panel-body">
-            <div class="viewer-top">
-              <div>
-                <h2 id="viewerTitle">তথ্য সংগ্রহ করা হচ্ছে...</h2>
-                <p id="viewerDescription">আপনার জন্য সর্বশেষ আবহাওয়া চিত্র প্রস্তুত করা হচ্ছে।</p>
-              </div>
-              <div class="status-box">
-                <strong id="statusText"><i class="fa-solid fa-circle-notch fa-spin fa-icon"></i> সংযোগ স্থাপন করা হচ্ছে</strong>
-                <span id="lastUpdated">নতুন তথ্যের জন্য অপেক্ষা করা হচ্ছে</span>
-              </div>
-            </div>
-
+            
             <div class="weather-summary" aria-label="Current weather summary">
               <h2>বর্তমান আবহাওয়া</h2>
               <div class="weather-metrics">
@@ -345,6 +387,24 @@
               <h2>আগামী ৭ দিনের পূর্বাভাস</h2>
               <div id="forecastContainer" class="forecast-grid">
                 <div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> পূর্বাভাস প্রস্তুত করা হচ্ছে...</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Radar View Section -->
+        <section class="panel mobile-section" data-mobile-group="radar-view">
+          <h2 class="panel-title"><i class="fa-solid fa-display fa-icon"></i> রাডার চিত্র</h2>
+          <div class="panel-body">
+            <div class="viewer-top">
+              <div>
+                <h2 id="viewerTitle">তথ্য সংগ্রহ করা হচ্ছে...</h2>
+                <p id="viewerDescription">আপনার জন্য সর্বশেষ আবহাওয়া চিত্র প্রস্তুত করা হচ্ছে।</p>
+              </div>
+              <div class="status-box">
+                <strong id="statusText"><i class="fa-solid fa-circle-notch fa-spin fa-icon"></i> সংযোগ স্থাপন করা হচ্ছে</strong>
+                <span id="lastUpdated">নতুন তথ্যের জন্য অপেক্ষা করা হচ্ছে</span>
               </div>
             </div>
 
@@ -663,7 +723,7 @@
     renderFeedGroups(); 
     updateFeedDisplay(); 
     startAutoRefresh(); 
-    setMobilePanel("radar-view"); // Initialize first tab active for mobile
+    setMobilePanel("weather-view"); // Initialize "আবহাওয়া" tab active for mobile initially
     
     if (navigator.onLine) {
       setOnlineState(); getCurrentWeather(); loadActiveFeed();
