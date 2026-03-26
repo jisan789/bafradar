@@ -1,712 +1,576 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Regional Weather Observation Dashboard</title>
+  <title>আঞ্চলিক আবহাওয়া পর্যবেক্ষণ</title>
+  
+  <!-- FontAwesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts for Native Bengali Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
+    :root {
+      /* Color Palette */
+      --bg-color: #f4f7f9;
+      --surface-color: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary-color: #0284c7;
+      --primary-hover: #0369a1;
+      --border-color: #e2e8f0;
+      
+      /* System */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --radius: 8px;
+      /* Applied Bengali Font */
+      --font-family: 'Hind Siliguri', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
-      background: #c9d3dc;
-      color: #111;
-      font-family: Tahoma, Verdana, Arial, sans-serif;
-      font-size: 13px;
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    * {
-      box-sizing: border-box;
+    [hidden] { display: none !important; }
+
+    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+
+    /* Custom Icon Styles */
+    .fa-icon { margin-right: 6px; color: var(--primary-color); }
+    .forecast-icon i { font-size: 1.8rem; color: var(--primary-color); }
+
+    /* Offline Screen */
+    .offline-screen {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; color: white;
     }
 
-    .page {
-      width: 100%;
-      max-width: none;
-      margin: 0;
-      padding: 0;
+    .offline-card {
+      background: #1e293b; padding: 2.5rem; border-radius: var(--radius);
+      text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     }
+    .offline-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .offline-card p { color: #94a3b8; }
+    .offline-card i { font-size: 3rem; color: #ef4444; margin-bottom: 1rem; }
+
+    /* Page & Header Structure */
+    .page { max-width: 1400px; margin: 0 auto; padding: 0 1rem; }
 
     .topbar {
-      background: #2f4f6f;
-      color: #fff;
-      border: 1px solid #162b40;
-      padding: 8px 12px;
-      margin-bottom: 0;
+      background: var(--surface-color); padding: 1.5rem 1rem; text-align: center;
+      border-bottom: 1px solid var(--border-color); margin: 0 -1rem 1.5rem -1rem; 
+      box-shadow: var(--shadow-sm);
+    }
+    .topbar h1 { font-size: 1.6rem; color: var(--text-main); margin-bottom: 0.5rem; font-weight: 700; }
+    .topbar p { color: var(--text-muted); font-size: 1.05rem; max-width: 700px; margin: 0 auto; }
+
+    .scope-note {
+      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
+      background: #e0f2fe; color: #0284c7; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
     }
 
-    .topbar h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 0.2px;
-    }
-
-    .topbar p {
-      margin: 4px 0 0;
-      color: #dbe8f5;
-      font-size: 12px;
-    }
-
-    .topbar .scope-note {
-      display: inline-block;
-      margin-top: 6px;
-      padding: 3px 8px;
-      border: 1px solid #9eb4c8;
-      background: #e4edf6;
-      color: #183149;
-      font-size: 11px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(220px, 250px);
-      gap: 0;
-      align-items: start;
-    }
-
+    /* Panel Design */
     .panel {
-      background: #e8edf2;
-      border: 1px solid #7a8b9b;
-      box-shadow: inset 1px 1px 0 #fff;
-      min-width: 0;
+      background: var(--surface-color); border-radius: var(--radius);
+      border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
+      overflow: hidden;
     }
-
-    .layout > .panel,
-    .layout > .right-column {
-      margin-top: -1px;
-    }
-
-    .layout > .panel:not(:first-child),
-    .layout > .right-column {
-      margin-left: -1px;
-    }
-
     .panel-title {
-      margin: 0;
-      padding: 6px 8px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #fff;
-      background: #4d6d8b;
-      border-bottom: 1px solid #30485f;
-      text-transform: uppercase;
+      background: #f8fafc; padding: 1rem 1.5rem; font-size: 1.2rem;
+      border-bottom: 1px solid var(--border-color); font-weight: 600;
     }
+    .panel-body { padding: 1.5rem; }
 
-    .panel-body {
-      padding: clamp(8px, 1.6vw, 14px);
+    /* Buttons */
+    #refreshButton {
+      width: 100%; background: var(--primary-color); color: white;
+      padding: 0.75rem; border-radius: var(--radius); font-weight: 600;
+      font-size: 1.1rem; transition: background 0.2s ease;
     }
+    #refreshButton:hover { background: var(--primary-hover); }
 
-    .controls {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 8px;
-    }
-
-    button,
-    .small-link {
-      font: inherit;
-      padding: 5px 9px;
-      border: 1px solid #6c7d8c;
-      background: #d9e2ea;
-      color: #111;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-    }
-
-    button:hover,
-    .small-link:hover {
-      background: #cbd7e1;
-    }
-
-    button.active {
-      background: #b7c8d8;
-      font-weight: bold;
-    }
-
-    fieldset {
-      margin: 0 0 8px;
-      padding: 6px;
-      border: 1px solid #8c9ba9;
-      background: #f2f5f8;
-    }
-
+    /* Feed List */
+    fieldset { margin-top: 1.5rem; min-width: 0; border: none;}
     legend {
-      padding: 0 4px;
-      font-weight: bold;
-      color: #24384a;
+      font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem;
+      font-size: 1rem; letter-spacing: 0.05em;
     }
-
-    .feed-list {
-      display: grid;
-      gap: 4px;
-    }
-
+    .feed-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .feed-button {
-      width: 100%;
-      text-align: left;
-      padding: 6px;
-      border: 1px solid #8b99a7;
-      background: #f7f9fb;
-      cursor: pointer;
-      line-height: 1.3;
+      display: flex; flex-direction: column; text-align: left; padding: 0.75rem 1rem;
+      background: var(--bg-color); border: 1px solid var(--border-color);
+      border-radius: var(--radius); transition: all 0.2s ease;
     }
-
-    .feed-button:hover {
-      background: #eaf0f5;
-    }
-
+    .feed-button:hover { border-color: var(--primary-color); }
     .feed-button.active {
-      background: #cddbe7;
-      border-color: #5f778e;
-      font-weight: bold;
+      background: #f0f9ff; border-color: var(--primary-color); color: var(--primary-hover);
+      box-shadow: 0 0 0 1px var(--primary-color);
     }
+    .feed-button span { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .feed-button.active span { color: var(--primary-hover); }
 
-    .feed-button span {
-      display: block;
-      font-size: 11px;
-      color: #4b5b68;
-      font-weight: normal;
-      margin-top: 2px;
-    }
-
+    /* Viewer Header Area */
     .viewer-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-      margin-bottom: 8px;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
     }
-
-    .viewer-top h2 {
-      margin: 0 0 4px;
-      font-size: 18px;
-      color: #1c3248;
-    }
-
-    .viewer-top p {
-      margin: 0;
-      color: #425462;
-      line-height: 1.35;
-    }
+    .viewer-top h2 { font-size: 1.35rem; font-weight: 700;}
+    .viewer-top p { color: var(--text-muted); font-size: 1rem; margin-top: 0.25rem; }
 
     .status-box {
-      min-width: min(220px, 100%);
-      padding: 6px;
-      border: 1px solid #8b99a7;
-      background: #f7fafc;
-      text-align: right;
+      text-align: right; background: var(--bg-color); padding: 0.5rem 1rem;
+      border-radius: var(--radius); border: 1px solid var(--border-color); font-size: 0.95rem; white-space: nowrap;
     }
+    .status-box strong { display: block; color: var(--primary-color); }
+    .status-box span { color: var(--text-muted); }
 
-    .status-box strong {
-      display: block;
-      color: #27445e;
+    /* Current Weather Metrics */
+    .weather-summary h2 {
+      font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
     }
+    .weather-metrics { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem; }
+    .weather-metric {
+      background: var(--bg-color); padding: 0.75rem 1rem; border-radius: var(--radius);
+      flex: 1 1 calc(25% - 10px); min-width: 120px; border: 1px solid var(--border-color);
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .weather-metric strong {
+      font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;
+    }
+    .weather-metric span { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
 
+    /* 7-Day Forecast Grid */
+    .forecast-summary { margin-bottom: 2rem; }
+    .forecast-summary h2 {
+      font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
+    }
+    .forecast-grid {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0.75rem;
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+    }
+    .forecast-grid::-webkit-scrollbar { height: 6px; }
+    .forecast-grid::-webkit-scrollbar-track { background: transparent; }
+    .forecast-grid::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    
+    .forecast-item {
+      background: var(--bg-color); padding: 1rem; border-radius: var(--radius);
+      text-align: center; flex: 0 0 auto; min-width: 95px; border: 1px solid var(--border-color);
+      transition: transform 0.2s ease;
+    }
+    .forecast-item:hover { transform: translateY(-2px); border-color: #bae6fd; }
+    .forecast-day {
+      font-weight: 700; font-size: 1rem; display: block; margin-bottom: 0.5rem; color: var(--text-muted);
+    }
+    .forecast-icon { margin: 0.5rem 0; line-height: 1; }
+    .forecast-temps { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+
+    /* Image Viewer Stage */
     .image-stage {
-      min-height: clamp(280px, 50vw, 520px);
-      border: 1px solid #7e8b97;
-      background: #aeb8c1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: auto;
-      padding: 8px;
+      background: #0f172a; min-height: 400px; border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+      position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
     }
+    .image-stage img { max-width: 100%; height: auto; max-height: 75vh; object-fit: contain; display: block; }
+    .loading-note { color: var(--text-muted); font-weight: 500; font-size: 1.1rem; }
+    .image-stage .loading-note { color: rgba(255, 255, 255, 0.7); }
 
-    .image-stage img {
-      max-width: 100%;
-      max-height: 78vh;
-      display: block;
-      border: 1px solid #475764;
-      background: #fff;
-    }
-
-    .loading-note {
-      color: #20384e;
-      font-weight: bold;
-    }
-
-    .info-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #f8fafc;
-    }
-
-    .info-table th,
-    .info-table td {
-      border: 1px solid #9aa7b3;
-      padding: 6px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .info-table th {
-      width: 42%;
-      background: #d9e3eb;
-      color: #20384d;
-    }
-
-    .section-stack {
-      display: grid;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .embed-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .satellite-grid {
-      margin-top: 8px;
-    }
-
-    .single-embed-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .embed-box {
-      border: 1px solid #8c9aa6;
-      background: #f5f8fa;
-      padding: 6px;
-    }
-
-    .embed-box h3 {
-      margin: 0 0 4px;
-      font-size: 14px;
-      color: #20384d;
-    }
-
-    .embed-box p {
-      margin: 0 0 6px;
-      font-size: 12px;
-      color: #465865;
-      line-height: 1.35;
-    }
-
-    .embed-box iframe {
-      width: 100%;
-      height: clamp(260px, 38vw, 390px);
-      border: 1px solid #7e8a96;
-      background: #fff;
-    }
-
-    .embed-box iframe.square-frame {
-      width: min(100%, 600px);
-      height: auto;
-      aspect-ratio: 1 / 1;
-      display: block;
-      overflow: hidden;
-      margin: 0 auto;
-    }
-
-    .embed-box iframe.wide-frame {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 41 / 30;
-      display: block;
-      overflow: hidden;
-      margin: 0 auto;
-    }
-
-    .embed-box iframe.click-blocked {
-      pointer-events: none;
-    }
-
-    .embed-box.satellite-box {
-      text-align: center;
-    }
-
+    /* Embeds */
+    .embed-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+    .embed-box h3 { font-size: 1.2rem; margin-bottom: 0.25rem; color: var(--text-main); }
+    .embed-box p { font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .embed-box iframe { border: none; border-radius: var(--radius); width: 100%; background: #cbd5e1; box-shadow: var(--shadow-sm); display: block; }
+    .single-embed-grid iframe { height: 500px; }
+    .square-frame { aspect-ratio: 1 / 1; }
+    .click-blocked { pointer-events: none; }
     .note {
-      margin: 0;
-      color: #425462;
-      line-height: 1.35;
+      font-size: 0.95rem; background: #fffbeb; color: #b45309; padding: 0.75rem 1rem;
+      border-radius: var(--radius); margin-bottom: 1.25rem; border: 1px solid #fef3c7; display: flex; align-items: center;
+    }
+    .note i { margin-right: 8px; font-size: 1.2rem;}
+
+    /* Footer */
+    .site-footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 1rem; font-weight: 500;}
+    .site-footer p { margin-bottom: 0.25rem; }
+
+    /* --- Responsive Layout Structure --- */
+    .layout { display: flex; flex-direction: column; gap: 1.5rem; }
+    .main-content { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    /* Desktop View */
+    @media (min-width: 1024px) {
+      .layout { display: grid; grid-template-columns: 320px 1fr; align-items: start; }
+      .mobile-nav { display: none !important; }
+      .topbar { border-radius: var(--radius); margin: 0 0 1.5rem 0; }
     }
 
-    .site-footer {
-      border: 1px solid #7a8b9b;
-      border-top: 0;
-      background: #dce5ec;
-      padding: 10px 12px;
-      color: #24384a;
-      font-size: 11px;
-      line-height: 1.5;
+    /* Tablets */
+    @media (min-width: 768px) { .satellite-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* Mobile View */
+    @media (max-width: 1023px) {
+      .mobile-nav {
+        display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 1rem; margin-bottom: 0.5rem; scrollbar-width: none;
+      }
+      .mobile-nav::-webkit-scrollbar { display: none; }
+      .mobile-nav-button {
+        flex: 1; min-width: max-content; background: var(--surface-color); border: 1px solid var(--border-color);
+        padding: 0.75rem 1.25rem; border-radius: 999px; font-weight: 600; font-size: 1.05rem; color: var(--text-muted); transition: all 0.2s ease;
+      }
+      .mobile-nav-button.active { background: var(--primary-color); color: white; border-color: var(--primary-color); box-shadow: var(--shadow-sm); }
+      
+      .weather-metric { flex: 1 1 calc(50% - 10px); }
+
+      /* Hide panels not active on mobile */
+      .mobile-section { display: none; animation: fadeIn 0.3s ease; }
+      .mobile-section.mobile-active { display: block; }
     }
 
-    .site-footer p {
-      margin: 0;
-    }
-
-    @media (max-width: 1180px) {
-      .layout {
-        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
-      }
-
-      .right-column {
-        grid-column: 1 / -1;
-        margin-left: 0;
-      }
-    }
-
-    @media (max-width: 860px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .layout > .panel,
-      .layout > .right-column {
-        margin-left: 0;
-      }
-
-      .embed-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .topbar h1 {
-        font-size: 18px;
-      }
-
-      .viewer-top {
-        flex-direction: column;
-      }
-
-      .status-box {
-        width: 100%;
-        text-align: left;
-      }
-
-      .image-stage {
-        min-height: 320px;
-      }
-
-      .info-table th,
-      .info-table td {
-        display: block;
-        width: 100%;
-      }
-
-      .info-table th {
-        border-bottom: 0;
-      }
-
-      .info-table td {
-        border-top: 0;
-      }
-    }
-
-    @media (max-width: 600px) {
-      body {
-        font-size: 12px;
-      }
-
-      .topbar {
-        padding: 8px 10px;
-      }
-
-      .topbar p {
-        font-size: 11px;
-        line-height: 1.4;
-      }
-
-      .panel-title {
-        padding: 6px;
-      }
-
-      .site-footer {
-        padding: 8px 10px;
-      }
-
-      .controls {
-        display: grid;
-        grid-template-columns: 1fr;
-      }
-
-      button,
-      .small-link,
-      .feed-button {
-        min-height: 40px;
-      }
-
-      .viewer-top h2 {
-        font-size: 16px;
-      }
-
-      .embed-box iframe {
-        height: min(72vw, 320px);
-      }
-
-      .embed-box iframe.square-frame,
-      .embed-box iframe.wide-frame {
-        width: min(100%, 600px);
-        height: auto;
-        aspect-ratio: 1 / 1;
-      }
-
-      .image-stage {
-        min-height: 240px;
-        padding: 6px;
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <div class="page">
+  <div id="offlineScreen" class="offline-screen" hidden>
+    <div class="offline-card">
+      <i class="fa-solid fa-wifi" style="text-decoration: line-through;"></i>
+      <h1>আপনার ইন্টারনেট সংযোগ নেই</h1>
+      <p>আবহাওয়ার সর্বশেষ তথ্য পেতে অনুগ্রহ করে ইন্টারনেট সংযোগ চালু করুন।</p>
+    </div>
+  </div>
+
+  <div id="appPage" class="page">
     <header class="topbar">
-      <h1>Regional Weather Observation Dashboard</h1>
-      <p>Operational image viewer for Bangladesh, Bay of Bengal, nearby India radar coverage, wind fields and satellite frames.</p>
-      <div class="scope-note">Observation dashboard for Bangladesh</div>
+      <h1>আঞ্চলিক আবহাওয়া পর্যবেক্ষণ</h1>
+      <p>বাংলাদেশ, বঙ্গোপসাগর ও পার্শ্ববর্তী ভারতের রাডার, বায়ুপ্রবাহ এবং স্যাটেলাইটের সরাসরি চিত্র।</p>
+      <div class="scope-note">বাংলাদেশের আবহাওয়া</div>
     </header>
 
+    <!-- Mobile Navigation Tabs -->
+    <nav class="mobile-nav" aria-label="Mobile section navigation">
+      <button type="button" class="mobile-nav-button active" data-mobile-panel="radar-view"><i class="fa-solid fa-satellite-dish fa-icon"></i> রাডার</button>
+      <button type="button" class="mobile-nav-button" data-mobile-panel="wind-view"><i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহ</button>
+      <button type="button" class="mobile-nav-button" data-mobile-panel="satellite-view"><i class="fa-solid fa-earth-asia fa-icon"></i> স্যাটেলাইট</button>
+    </nav>
+
+    <!-- Unified Responsive Layout -->
     <div class="layout">
-      <aside class="panel">
-        <h2 class="panel-title">Feed Selection</h2>
+      
+      <!-- Left Sidebar: Radar Feeds (Hidden on mobile unless Radar tab is active) -->
+      <aside class="panel mobile-section" data-mobile-group="radar-view">
+        <h2 class="panel-title"><i class="fa-solid fa-rss fa-icon"></i> রাডার ফিড</h2>
         <div class="panel-body">
           <div class="controls">
-            <button id="refreshButton" type="button">Refresh</button>
-            <button id="autoRefreshButton" type="button" class="active">Auto: On</button>
+            <button id="refreshButton" type="button"><i class="fa-solid fa-rotate-right fa-icon" style="color:white;"></i> তথ্য হালনাগাদ করুন</button>
           </div>
 
           <fieldset>
-            <legend>BAF</legend>
+            <legend>বাংলাদেশ বিমান বাহিনী (BAF)</legend>
             <div class="feed-list" id="group-baf"></div>
           </fieldset>
 
           <fieldset>
-            <legend>External Radar</legend>
-            <div class="feed-list" id="group-external"></div>
-          </fieldset>
-
-          <fieldset>
-            <legend>IMD</legend>
+            <legend>ভারতের আবহাওয়া দপ্তর (IMD)</legend>
             <div class="feed-list" id="group-imd"></div>
           </fieldset>
         </div>
       </aside>
 
-      <main class="panel">
-        <h2 class="panel-title">Primary Viewer</h2>
-        <div class="panel-body">
-          <div class="viewer-top">
-            <div>
-              <h2 id="viewerTitle">Loading feed...</h2>
-              <p id="viewerDescription">Preparing observation display.</p>
+      <!-- Right Content: Everything Else -->
+      <main class="main-content">
+        
+        <!-- Radar View Section -->
+        <section class="panel mobile-section" data-mobile-group="radar-view">
+          <h2 class="panel-title"><i class="fa-solid fa-display fa-icon"></i> রাডার চিত্র</h2>
+          <div class="panel-body">
+            <div class="viewer-top">
+              <div>
+                <h2 id="viewerTitle">তথ্য সংগ্রহ করা হচ্ছে...</h2>
+                <p id="viewerDescription">আপনার জন্য সর্বশেষ আবহাওয়া চিত্র প্রস্তুত করা হচ্ছে।</p>
+              </div>
+              <div class="status-box">
+                <strong id="statusText"><i class="fa-solid fa-circle-notch fa-spin fa-icon"></i> সংযোগ স্থাপন করা হচ্ছে</strong>
+                <span id="lastUpdated">নতুন তথ্যের জন্য অপেক্ষা করা হচ্ছে</span>
+              </div>
             </div>
-            <div class="status-box">
-              <strong id="statusText">Connecting</strong>
-              <span id="lastUpdated">Waiting for first update</span>
-            </div>
-          </div>
 
-          <div class="image-stage">
-            <div id="loadingMessage" class="loading-note">Loading latest image...</div>
-            <img id="mainImage" alt="Weather feed image" hidden>
-          </div>
-
-          <div class="section-stack">
-            <section class="panel">
-              <h2 class="panel-title">Wind Frames</h2>
-              <div class="panel-body">
-                <div class="embed-grid single-embed-grid">
-                  <div class="embed-box satellite-box">
-                    <h3>Windy Surface Wind</h3>
-                    <p>ECMWF wind layer over Bangladesh and the Bay of Bengal.</p>
-                    <iframe
-                      src="https://embed.windy.com/embed2.html?lat=23.839&lon=90.483&detailLat=15.352&detailLon=91.059&width=1450&height=700&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=default&radarRange=-1"
-                      class="click-blocked"
-                      title="Windy surface wind"
-                      loading="lazy"
-                      referrerpolicy="no-referrer-when-downgrade"
-                    ></iframe>
-                  </div>
+            <div class="weather-summary" aria-label="Current weather summary">
+              <h2>বর্তমান আবহাওয়া</h2>
+              <div class="weather-metrics">
+                <div class="weather-metric">
+                  <strong>তাপমাত্রা</strong>
+                  <span id="currentTemp"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>অবস্থা</strong>
+                  <span id="currentCondition"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>বাতাসের গতি</strong>
+                  <span id="currentWind"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>বাতাসের দিক</strong>
+                  <span id="currentWindDir"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>বৃষ্টিপাত</strong>
+                  <span id="currentPrecip"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>সূর্যোদয়</strong>
+                  <span id="currentSunrise"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                </div>
+                <div class="weather-metric">
+                  <strong>সূর্যাস্ত</strong>
+                  <span id="currentSunset"><i class="fa-solid fa-spinner fa-spin"></i></span>
                 </div>
               </div>
-            </section>
+            </div>
 
-            <section class="panel">
-              <h2 class="panel-title">Satellite Frames</h2>
-              <div class="panel-body">
-                <p class="note">These RealEarth links are loaded in frames. If your browser blocks `http` content, use the direct open links.</p>
-                <div class="embed-grid satellite-grid">
-                  <div class="embed-box">
-                    <h3>Himawari B13 Gradient</h3>
-                    <p>Updated infrared gradient satellite view focused more tightly on Bangladesh.</p>
-                    <iframe
-                      class="square-frame"
-                      src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13-GRAD.100&center=23.836338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13-GRAD&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&"
-                      title="RealEarth Himawari B13 Gradient"
-                      loading="lazy"
-                      scrolling="no"
-                    ></iframe>
-                  </div>
-
-                  <div class="embed-box">
-                    <h3>Himawari B13</h3>
-                    <p>Current Himawari Band 13 satellite image centered on Bangladesh.</p>
-                    <iframe
-                      class="square-frame"
-                      src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&fbclid=IwAR2BZ4YwRI1pU3S6De7glPRVa8A9A4Bq4rYXqA6WicvnrvUHp1JvWK79I4g"
-                      title="RealEarth Himawari B13"
-                      loading="lazy"
-                      scrolling="no"
-                    ></iframe>
-                  </div>
-                </div>
+            <div class="forecast-summary" aria-label="7-Day Forecast">
+              <h2>আগামী ৭ দিনের পূর্বাভাস</h2>
+              <div id="forecastContainer" class="forecast-grid">
+                <div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> পূর্বাভাস প্রস্তুত করা হচ্ছে...</div>
               </div>
-            </section>
+            </div>
+
+            <div class="image-stage">
+              <div id="loadingMessage" class="loading-note"><i class="fa-solid fa-image fa-icon"></i> সর্বশেষ চিত্র সংগ্রহ করা হচ্ছে...</div>
+              <img id="mainImage" alt="Weather feed image" hidden>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- Wind View Section -->
+        <section class="panel mobile-section" data-mobile-group="wind-view">
+          <h2 class="panel-title"><i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহের চিত্র</h2>
+          <div class="panel-body">
+            <div class="embed-grid single-embed-grid">
+              <div class="embed-box satellite-box">
+                <h3>উইন্ডি (Windy) ভূপৃষ্ঠের বায়ুপ্রবাহ</h3>
+                <p>বাংলাদেশ ও বঙ্গোপসাগরের ওপর ECMWF মডেলে বায়ুপ্রবাহের স্তর।</p>
+                <iframe src="https://embed.windy.com/embed2.html?lat=23.839&lon=90.483&detailLat=15.352&detailLon=91.059&width=1450&height=700&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=default&radarRange=-1" class="click-blocked" title="Windy surface wind" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Satellite View Section -->
+        <section class="panel mobile-section" data-mobile-group="satellite-view">
+          <h2 class="panel-title"><i class="fa-solid fa-satellite fa-icon"></i> স্যাটেলাইটের চিত্র</h2>
+          <div class="panel-body">
+            <p class="note"><i class="fa-solid fa-circle-info"></i> রিয়েলআর্থ (RealEarth) থেকে সরাসরি এই চিত্রগুলো দেখানো হচ্ছে। কোনো কারণে ব্রাউজারে না দেখালে সরাসরি লিংকটি ব্যবহার করতে পারেন।</p>
+            <div class="embed-grid satellite-grid">
+              <div class="embed-box">
+                <h3>হিমায়ারি ব্যান্ড-১৩ (গ্রেডিয়েন্ট)</h3>
+                <p>বাংলাদেশের ওপর ফোকাস করা ইনফ্রারেড গ্রেডিয়েন্ট স্যাটেলাইট চিত্র।</p>
+                <iframe class="square-frame" src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13-GRAD.100&center=23.836338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13-GRAD&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&" title="RealEarth Himawari B13 Gradient" loading="lazy" scrolling="no"></iframe>
+              </div>
+              <div class="embed-box">
+                <h3>হিমায়ারি ব্যান্ড-১৩</h3>
+                <p>বাংলাদেশের ওপর ফোকাস করা হিমায়ারি ব্যান্ড-১৩ এর বর্তমান স্যাটেলাইট চিত্র।</p>
+                <iframe class="square-frame" src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&view=leaflet&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56&fbclid=IwAR2BZ4YwRI1pU3S6De7glPRVa8A9A4Bq4rYXqA6WicvnrvUHp1JvWK79I4g" title="RealEarth Himawari B13" loading="lazy" scrolling="no"></iframe>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </main>
-
-      <aside class="panel right-column">
-        <h2 class="panel-title">Feed Status</h2>
-        <div class="panel-body">
-          <table class="info-table">
-            <tr>
-              <th>Selected Feed</th>
-              <td id="selectedFeed">Loading...</td>
-            </tr>
-            <tr>
-              <th>Category</th>
-              <td id="selectedCategory">Loading...</td>
-            </tr>
-            <tr>
-              <th>Refresh Mode</th>
-              <td id="refreshMode">Automatic every 5 minutes</td>
-            </tr>
-          </table>
-
-          <fieldset style="margin-top: 8px;">
-            <legend>Operator Notes</legend>
-            <p class="note">Use the left panel to switch quickly between radar feeds. The main viewer always shows one primary image at a time for faster inspection.</p>
-            <p class="note">Embedded wind and satellite panels stay available below the main viewer for cross-checking larger-scale conditions.</p>
-          </fieldset>
-        </div>
-      </aside>
     </div>
 
     <footer class="site-footer">
-      <p>Developed by Jisan</p>
-      <p>Thanks to BMD, BAF, and IMD</p>
+      <p>কারিগরি সহায়তায়: জিসান</p>
+      <p>তথ্যসূত্র: বিএমডি, বিএএফ এবং আইএমডি</p>
     </footer>
   </div>
 
   <script>
     const feeds = [
       {
-        id: "mosradar",
-        group: "baf",
-        category: "BAF",
-        name: "MOS Radar",
-        description: "Primary weather radar image from the Bangladesh Air Force weather server.",
-        url: "https://wx.baf.mil.bd/ftp_folder/mosradar.jpg"
+        id: "mtr", group: "baf", category: "BAF", name: "এমটিআর (MTR)",
+        description: "বাংলাদেশ বিমান বাহিনীর অতিরিক্ত রাডার চিত্র।", url: "https://wx.baf.mil.bd/FTP_Folder/mtr.jpg"
       },
       {
-        id: "mtr",
-        group: "baf",
-        category: "BAF",
-        name: "MTR",
-        description: "Additional BAF observation image.",
-        url: "https://wx.baf.mil.bd/FTP_Folder/mtr.jpg"
+        id: "zhrradar", group: "baf", category: "BAF", name: "জেডএইচআর (ZHR) রাডার",
+        description: "বর্তমান পরিস্থিতি তাৎক্ষণিক পর্যবেক্ষণের জন্য বিমান বাহিনীর রাডার চিত্র।", url: "https://wx.baf.mil.bd/FTP_Folder/zhrradar.jpg"
       },
       {
-        id: "zhrradar",
-        group: "baf",
-        category: "BAF",
-        name: "ZHR Radar",
-        description: "BAF radar product for quick situational awareness.",
-        url: "https://wx.baf.mil.bd/FTP_Folder/zhrradar.jpg"
+        id: "mosradar", group: "baf", category: "BAF", name: "এমওএস (MOS) রাডার",
+        description: "বাংলাদেশ বিমান বাহিনীর প্রধান আবহাওয়া রাডার চিত্র।", url: "https://wx.baf.mil.bd/ftp_folder/mosradar.jpg"
       },
       {
-        id: "force13-bob",
-        group: "external",
-        category: "External Radar",
-        name: "Force 13 BOB Radar",
-        description: "Regional Bay of Bengal radar image from Force 13.",
-        url: "https://www.force-13.com/product/radar/bob/latest.png"
-      },
-      {
-        id: "imd-caz-kol",
-        group: "imd",
-        category: "IMD",
-        name: "IMD Kolkata CAZ",
-        description: "Kolkata composite reflectivity radar product.",
-        url: "https://mausam.imd.gov.in/Radar/caz_kol.gif"
-      },
-      {
-        id: "imd-ppz-kol",
-        group: "imd",
-        category: "IMD",
-        name: "IMD Kolkata PPZ",
-        description: "Kolkata PPZ precipitation radar product.",
-        url: "https://mausam.imd.gov.in/Radar/ppz_kol.gif"
-      },
-      {
-        id: "imd-caz-agt",
-        group: "imd",
-        category: "IMD",
-        name: "IMD Agartala CAZ",
-        description: "Agartala composite reflectivity radar product.",
-        url: "https://mausam.imd.gov.in/Radar/caz_agt.gif"
-      },
-      {
-        id: "imd-ppz-agt",
-        group: "imd",
-        category: "IMD",
-        name: "IMD Agartala PPZ",
-        description: "Agartala PPZ precipitation radar product.",
-        url: "https://mausam.imd.gov.in/Radar/ppz_agt.gif"
+        id: "imd-ppz-agt", group: "imd", category: "IMD", name: "আইএমডি আগরতলা পিপিজেড",
+        description: "আগরতলা পিপিজেড (PPZ) বৃষ্টিপাত পর্যবেক্ষণ রাডার চিত্র।", url: "https://mausam.imd.gov.in/Radar/ppz_agt.gif"
       }
     ];
 
     const refreshIntervalMs = 5 * 60 * 1000;
     let activeFeedId = feeds[0].id;
-    let autoRefreshEnabled = true;
     let refreshTimer = null;
 
     const groupTargets = {
       baf: document.getElementById("group-baf"),
-      external: document.getElementById("group-external"),
       imd: document.getElementById("group-imd")
     };
 
+    const appPage = document.getElementById("appPage");
+    const offlineScreen = document.getElementById("offlineScreen");
     const viewerTitle = document.getElementById("viewerTitle");
     const viewerDescription = document.getElementById("viewerDescription");
     const statusText = document.getElementById("statusText");
     const lastUpdated = document.getElementById("lastUpdated");
     const loadingMessage = document.getElementById("loadingMessage");
     const mainImage = document.getElementById("mainImage");
-    const selectedFeed = document.getElementById("selectedFeed");
-    const selectedCategory = document.getElementById("selectedCategory");
-    const refreshMode = document.getElementById("refreshMode");
     const refreshButton = document.getElementById("refreshButton");
-    const autoRefreshButton = document.getElementById("autoRefreshButton");
+    
+    // Unified metric elements
+    const currentTemp = document.getElementById("currentTemp");
+    const currentWind = document.getElementById("currentWind");
+    const currentCondition = document.getElementById("currentCondition");
+    const currentWindDir = document.getElementById("currentWindDir");
+    const currentPrecip = document.getElementById("currentPrecip");
+    const currentSunrise = document.getElementById("currentSunrise");
+    const currentSunset = document.getElementById("currentSunset");
+    const forecastContainer = document.getElementById("forecastContainer");
+
+    const mobileNavButtons = Array.from(document.querySelectorAll(".mobile-nav-button"));
+    const mobileSections = Array.from(document.querySelectorAll(".mobile-section"));
+
+    const currentWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=23.81&longitude=90.41&current=temperature_2m,wind_speed_10m,weather_code,wind_direction_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FDhaka";
 
     function getFeedById(id) {
       return feeds.find((feed) => feed.id === id) || feeds[0];
     }
 
+    function toBnNum(num) {
+      if (num === null || num === undefined) return "০";
+      return new Intl.NumberFormat('bn-BD').format(num);
+    }
+
+    function getWeatherCondition(code) {
+      if (code === 0) return '<i class="fa-solid fa-sun fa-icon"></i> আকাশ পরিষ্কার';
+      if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud fa-icon"></i> মেঘলা আকাশ';
+      if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog fa-icon"></i> কুয়াশাচ্ছন্ন';
+      if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-rain fa-icon"></i> গুঁড়ি গুঁড়ি বৃষ্টি';
+      if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake fa-icon"></i> তুষারপাত';
+      if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-showers-heavy fa-icon"></i> বৃষ্টিপাত';
+      if (code >= 95) return '<i class="fa-solid fa-cloud-bolt fa-icon"></i> বজ্রসহ বৃষ্টিপাত';
+      return '<i class="fa-solid fa-circle-question fa-icon"></i> অজানা অবস্থা';
+    }
+
+    function getWeatherIcon(code) {
+      if (code === 0) return '<i class="fa-solid fa-sun"></i>';
+      if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud"></i>';
+      if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog"></i>';
+      if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-rain"></i>';
+      if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake"></i>';
+      if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-showers-heavy"></i>';
+      if (code >= 95) return '<i class="fa-solid fa-cloud-bolt"></i>';
+      return '<i class="fa-solid fa-circle-question"></i>';
+    }
+
+    function getWindDirection(degrees) {
+      const directions = ["উত্তর", "উত্তর-পূর্ব", "পূর্ব", "দক্ষিণ-পূর্ব", "দক্ষিণ", "দক্ষিণ-পশ্চিম", "পশ্চিম", "উত্তর-পশ্চিম"];
+      const index = Math.round(((degrees %= 360) < 0 ? degrees + 360 : degrees) / 45) % 8;
+      return directions[index];
+    }
+
+    function formatTime(isoString) {
+      if (!isoString) return "প্রযোজ্য নয়";
+      const date = new Date(isoString);
+      return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateWeatherSummary({ tempText, windText, conditionText, windDirText, precipText, sunriseText, sunsetText }) {
+      currentTemp.innerHTML = tempText;
+      currentWind.innerHTML = windText;
+      currentCondition.innerHTML = conditionText;
+      currentWindDir.innerHTML = windDirText;
+      currentPrecip.innerHTML = precipText;
+      currentSunrise.innerHTML = sunriseText;
+      currentSunset.innerHTML = sunsetText;
+    }
+
+    function renderForecast(dailyData) {
+      let html = "";
+      for (let i = 0; i < dailyData.time.length; i++) {
+        const date = new Date(dailyData.time[i]);
+        const dayStr = i === 0 ? "আজ" : date.toLocaleDateString("bn-BD", { weekday: "long" });
+        const maxT = toBnNum(Math.round(dailyData.temperature_2m_max[i]));
+        const minT = toBnNum(Math.round(dailyData.temperature_2m_min[i]));
+        const icon = getWeatherIcon(dailyData.weather_code[i]);
+
+        html += `
+          <div class="forecast-item">
+            <span class="forecast-day">${dayStr}</span>
+            <div class="forecast-icon">${icon}</div>
+            <div class="forecast-temps">${maxT}° / ${minT}°</div>
+          </div>
+        `;
+      }
+      forecastContainer.innerHTML = html;
+    }
+
+    async function getCurrentWeather() {
+      try {
+        const res = await fetch(currentWeatherUrl);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        
+        const temp = toBnNum(Math.round(data.current.temperature_2m));
+        const wind = toBnNum(Math.round(data.current.wind_speed_10m));
+        const code = data.current.weather_code;
+        const windDir = data.current.wind_direction_10m;
+        const precip = toBnNum(data.current.precipitation);
+        const sunrise = data.daily.sunrise[0];
+        const sunset = data.daily.sunset[0];
+
+        updateWeatherSummary({
+          tempText: `<i class="fa-solid fa-temperature-half fa-icon"></i> ${temp}° সে.`,
+          windText: `<i class="fa-solid fa-wind fa-icon"></i> ${wind} কিমি/ঘ.`,
+          conditionText: getWeatherCondition(code),
+          windDirText: `<i class="fa-regular fa-compass fa-icon"></i> ${getWindDirection(windDir)}`,
+          precipText: `<i class="fa-solid fa-droplet fa-icon"></i> ${precip} মিমি`,
+          sunriseText: `<i class="fa-regular fa-sun fa-icon"></i> ${formatTime(sunrise)}`,
+          sunsetText: `<i class="fa-regular fa-moon fa-icon"></i> ${formatTime(sunset)}`
+        });
+
+        renderForecast(data.daily);
+
+      } catch (error) {
+        console.error("Unable to load current weather:", error);
+        updateWeatherSummary({
+          tempText: "তথ্য পাওয়া যায়নি", windText: "তথ্য পাওয়া যায়নি", conditionText: "সংগ্রহ করা যায়নি",
+          windDirText: "তথ্য পাওয়া যায়নি", precipText: "তথ্য পাওয়া যায়নি", sunriseText: "তথ্য পাওয়া যায়নি", sunsetText: "তথ্য পাওয়া যায়নি"
+        });
+        forecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> পূর্বাভাস পাওয়া যায়নি</div>';
+      }
+    }
+
     function formatDate(date) {
-      return new Intl.DateTimeFormat("en-BD", {
-        dateStyle: "medium",
-        timeStyle: "medium"
-      }).format(date);
+      return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
     }
 
     function renderFeedGroups() {
-      Object.values(groupTargets).forEach((target) => {
-        target.innerHTML = "";
-      });
+      Object.values(groupTargets).forEach((target) => { target.innerHTML = ""; });
 
       feeds.forEach((feed) => {
         const button = document.createElement("button");
-        button.type = "button";
-        button.className = "feed-button";
-        button.dataset.feedId = feed.id;
+        button.type = "button"; button.className = "feed-button"; button.dataset.feedId = feed.id;
         button.innerHTML = `${feed.name}<span>${feed.description}</span>`;
         button.addEventListener("click", () => {
           if (activeFeedId !== feed.id) {
@@ -715,18 +579,14 @@
             loadActiveFeed();
           }
         });
-
         groupTargets[feed.group].appendChild(button);
       });
     }
 
     function updateFeedDisplay() {
       const activeFeed = getFeedById(activeFeedId);
-
-      viewerTitle.textContent = activeFeed.name;
+      viewerTitle.textContent = activeFeed.name; 
       viewerDescription.textContent = activeFeed.description;
-      selectedFeed.textContent = activeFeed.name;
-      selectedCategory.textContent = activeFeed.category;
 
       document.querySelectorAll(".feed-button").forEach((button) => {
         button.classList.toggle("active", button.dataset.feedId === activeFeedId);
@@ -734,65 +594,84 @@
     }
 
     function setLoadingState(message) {
-      loadingMessage.hidden = false;
-      loadingMessage.textContent = message;
+      loadingMessage.hidden = false; 
+      loadingMessage.innerHTML = `<i class="fa-solid fa-spinner fa-spin fa-icon"></i> ${message}`; 
       mainImage.hidden = true;
-      statusText.textContent = "Refreshing";
+      statusText.innerHTML = `<i class="fa-solid fa-arrows-rotate fa-spin fa-icon"></i> তথ্য আপডেট করা হচ্ছে...`;
     }
 
-    function updateRefreshModeLabel() {
-      refreshMode.textContent = autoRefreshEnabled ? "Automatic every 5 minutes" : "Manual refresh only";
-      autoRefreshButton.textContent = autoRefreshEnabled ? "Auto: On" : "Auto: Off";
-      autoRefreshButton.classList.toggle("active", autoRefreshEnabled);
+    function setOfflineState() {
+      const offlineMessage = '<i class="fa-solid fa-wifi" style="text-decoration: line-through; margin-right:5px;"></i> আপনার ইন্টারনেট সংযোগ নেই।';
+      appPage.hidden = true; offlineScreen.hidden = false;
+      loadingMessage.hidden = false; loadingMessage.innerHTML = offlineMessage; 
+      mainImage.hidden = true; statusText.innerHTML = "সংযোগ নেই";
     }
 
-    function setAutoRefresh(enabled) {
-      autoRefreshEnabled = enabled;
-      updateRefreshModeLabel();
+    function setOnlineState() { offlineScreen.hidden = true; appPage.hidden = false; }
 
-      if (refreshTimer) {
-        window.clearInterval(refreshTimer);
-        refreshTimer = null;
-      }
+    // Toggle panels for mobile
+    function setMobilePanel(panelId) {
+      mobileNavButtons.forEach((button) => { 
+        button.classList.toggle("active", button.dataset.mobilePanel === panelId); 
+      });
+      mobileSections.forEach((panel) => { 
+        panel.classList.toggle("mobile-active", panel.dataset.mobileGroup === panelId); 
+      });
+    }
 
-      if (enabled) {
-        refreshTimer = window.setInterval(loadActiveFeed, refreshIntervalMs);
-      }
+    function startAutoRefresh() {
+      if (refreshTimer) window.clearInterval(refreshTimer);
+      refreshTimer = window.setInterval(loadActiveFeed, refreshIntervalMs);
     }
 
     function loadActiveFeed() {
+      if (!navigator.onLine) { setOfflineState(); return; }
+      setOnlineState();
+
       const activeFeed = getFeedById(activeFeedId);
       const cacheBustedUrl = `${activeFeed.url}${activeFeed.url.includes("?") ? "&" : "?"}t=${Date.now()}`;
 
-      setLoadingState(`Loading ${activeFeed.name}...`);
+      setLoadingState(`${activeFeed.name} সংগ্রহ করা হচ্ছে...`);
 
       const probe = new Image();
       probe.onload = () => {
-        mainImage.src = cacheBustedUrl;
-        mainImage.alt = `${activeFeed.name} weather image`;
-        mainImage.hidden = false;
-        loadingMessage.hidden = true;
-        statusText.textContent = "Image loaded";
+        mainImage.src = cacheBustedUrl; mainImage.alt = `${activeFeed.name} weather image`; 
+        mainImage.hidden = false; loadingMessage.hidden = true;
+        statusText.innerHTML = `<i class="fa-solid fa-circle-check fa-icon"></i> চিত্র আপডেট হয়েছে`; 
         lastUpdated.textContent = formatDate(new Date());
       };
 
       probe.onerror = () => {
-        loadingMessage.hidden = false;
-        loadingMessage.textContent = "Image not available right now. Try refresh again.";
-        mainImage.hidden = true;
-        statusText.textContent = "Feed unavailable";
+        loadingMessage.hidden = false; 
+        loadingMessage.innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-icon"></i> এই মুহূর্তে ছবিটি পাওয়া যাচ্ছে না। অনুগ্রহ করে পুনরায় চেষ্টা করুন।';
+        mainImage.hidden = true; statusText.innerHTML = "চিত্র পাওয়া যায়নি";
       };
 
       probe.src = cacheBustedUrl;
     }
 
     refreshButton.addEventListener("click", loadActiveFeed);
-    autoRefreshButton.addEventListener("click", () => setAutoRefresh(!autoRefreshEnabled));
+    
+    // Add event listeners to mobile nav tabs
+    mobileNavButtons.forEach((button) => { 
+      button.addEventListener("click", () => setMobilePanel(button.dataset.mobilePanel)); 
+    });
+    
+    window.addEventListener("offline", setOfflineState);
+    window.addEventListener("online", () => { setOnlineState(); getCurrentWeather(); loadActiveFeed(); });
 
-    renderFeedGroups();
-    updateFeedDisplay();
-    setAutoRefresh(true);
-    loadActiveFeed();
+    renderFeedGroups(); 
+    updateFeedDisplay(); 
+    startAutoRefresh(); 
+    setMobilePanel("radar-view"); // Initialize first tab active for mobile
+    
+    if (navigator.onLine) {
+      setOnlineState(); getCurrentWeather(); loadActiveFeed();
+    } else {
+      setOfflineState(); updateWeatherSummary({
+        tempText: "সংযোগ নেই", windText: "সংযোগ নেই", conditionText: "সংযোগ নেই", windDirText: "সংযোগ নেই", precipText: "সংযোগ নেই", sunriseText: "সংযোগ নেই", sunsetText: "সংযোগ নেই"
+      });
+    }
   </script>
 </body>
 </html>
