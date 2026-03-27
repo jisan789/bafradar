@@ -557,12 +557,7 @@
     const mobileNavButtons = Array.from(document.querySelectorAll(".mobile-nav-button"));
     const mobileSections = Array.from(document.querySelectorAll(".mobile-section"));
 
-    const defaultLocation = {
-      latitude: 23.81,
-      longitude: 90.41,
-      label: "Dhaka fallback"
-    };
-    let activeLocation = { ...defaultLocation };
+    let activeLocation = null;
 
     function getFeedById(id) {
       return feeds.find((feed) => feed.id === id) || feeds[0];
@@ -681,29 +676,41 @@
       hourlyForecastContainer.innerHTML = html;
     }
 
+    function clearWeatherSummary(message) {
+      updateWeatherSummary({
+        tempText: message,
+        windText: message,
+        conditionText: message,
+        windDirText: message,
+        precipText: message,
+        sunriseText: message,
+        sunsetText: message
+      });
+      forecastContainer.innerHTML = `<div class="loading-note"><i class="fa-solid fa-location-dot fa-icon"></i> ${message}</div>`;
+      hourlyForecastContainer.innerHTML = `<div class="loading-note"><i class="fa-solid fa-location-dot fa-icon"></i> ${message}</div>`;
+    }
+
     function getCurrentPosition() {
       return new Promise((resolve) => {
         if (!("geolocation" in navigator)) {
           resolve({
-            coords: {
-              latitude: defaultLocation.latitude,
-              longitude: defaultLocation.longitude
-            },
-            fallback: true,
-            reason: "Geolocation is not available in this browser."
+            granted: false,
+            reason: "এই ব্রাউজারে লোকেশন সুবিধা নেই।"
           });
           return;
         }
 
         navigator.geolocation.getCurrentPosition(
-          (position) => resolve({ ...position, fallback: false }),
-          () => resolve({
+          (position) => resolve({
+            granted: true,
             coords: {
-              latitude: defaultLocation.latitude,
-              longitude: defaultLocation.longitude
-            },
-            fallback: true,
-            reason: "Location permission denied, using fallback coordinates."
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            }
+          }),
+          () => resolve({
+            granted: false,
+            reason: "লোকেশন অ্যাক্সেস দিন, তাহলে আপনার বর্তমান অবস্থান অনুযায়ী আবহাওয়া দেখানো হবে।"
           }),
           {
             enableHighAccuracy: true,
@@ -744,65 +751,32 @@
       forecastContainer.innerHTML = html;
     }
 
-    async function getCurrentWeatherLegacy() {
-      try {
-        const res = await fetch(currentWeatherUrl);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const data = await res.json();
-        
-        const temp = toBnNum(Math.round(data.current.temperature_2m));
-        const wind = toBnNum(Math.round(data.current.wind_speed_10m));
-        const code = data.current.weather_code;
-        const windDir = data.current.wind_direction_10m;
-        const precip = toBnNum(data.current.precipitation);
-        const sunrise = data.daily.sunrise[0];
-        const sunset = data.daily.sunset[0];
-
-        updateWeatherSummary({
-          tempText: `<i class="fa-solid fa-temperature-half fa-icon"></i> ${temp}° সে.`,
-          windText: `<i class="fa-solid fa-wind fa-icon"></i> ${wind} কিমি/ঘ.`,
-          conditionText: getWeatherCondition(code),
-          windDirText: `<i class="fa-regular fa-compass fa-icon"></i> ${getWindDirection(windDir)}`,
-          precipText: `<i class="fa-solid fa-droplet fa-icon"></i> ${precip} মিমি`,
-          sunriseText: `<i class="fa-regular fa-sun fa-icon"></i> ${formatTime(sunrise)}`,
-          sunsetText: `<i class="fa-regular fa-moon fa-icon"></i> ${formatTime(sunset)}`
-        });
-
-        renderForecast(data.daily);
-
-      } catch (error) {
-        console.error("Unable to load current weather:", error);
-        updateWeatherSummary({
-          tempText: "তথ্য পাওয়া যায়নি", windText: "তথ্য পাওয়া যায়নি", conditionText: "সংগ্রহ করা যায়নি",
-          windDirText: "তথ্য পাওয়া যায়নি", precipText: "তথ্য পাওয়া যায়নি", sunriseText: "তথ্য পাওয়া যায়নি", sunsetText: "তথ্য পাওয়া যায়নি"
-        });
-        forecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> পূর্বাভাস পাওয়া যায়নি</div>';
-      }
-    }
-
     function formatDate(date) {
       return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
     }
 
     async function getCurrentWeather() {
       try {
-        setLocationStatus("Detecting your current location...");
-        hourlyForecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> Loading next 24 hours forecast...</div>';
+        setLocationStatus("লোকেশন অ্যাক্সেসের অনুরোধ পাঠানো হচ্ছে...");
+        clearWeatherSummary("লোকেশন অনুমতির অপেক্ষায়...");
 
         const position = await getCurrentPosition();
+        if (!position.granted) {
+          activeLocation = null;
+          setLocationStatus(position.reason, true);
+          clearWeatherSummary("লোকেশন অ্যাক্সেস দিন");
+          return;
+        }
+
         activeLocation = {
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          label: position.fallback ? defaultLocation.label : "Current location"
+          longitude: position.coords.longitude
         };
 
         const latText = Number(activeLocation.latitude).toFixed(4);
         const lonText = Number(activeLocation.longitude).toFixed(4);
         setLocationStatus(
-          position.fallback
-            ? `${position.reason} Lat ${latText}, Lon ${lonText}`
-            : `Live location detected. Lat ${latText}, Lon ${lonText}`,
-          Boolean(position.fallback)
+          `আপনার লোকেশন পাওয়া গেছে। Lat ${latText}, Lon ${lonText}`
         );
 
         const weatherUrl = buildWeatherUrl(activeLocation.latitude, activeLocation.longitude);
@@ -836,13 +810,9 @@
 
       } catch (error) {
         console.error("Unable to load current weather:", error);
-        setLocationStatus("Weather location lookup failed. Using saved fallback state.", true);
-        updateWeatherSummary({
-          tempText: "Unavailable", windText: "Unavailable", conditionText: "Unavailable",
-          windDirText: "Unavailable", precipText: "Unavailable", sunriseText: "Unavailable", sunsetText: "Unavailable"
-        });
-        forecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> Forecast unavailable.</div>';
-        hourlyForecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> 24-hour forecast unavailable.</div>';
+        activeLocation = null;
+        setLocationStatus("লোকেশন পাওয়া যায়নি। অনুগ্রহ করে লোকেশন অ্যাক্সেস দিন।", true);
+        clearWeatherSummary("লোকেশন অ্যাক্সেস প্রয়োজন");
       }
     }
 
@@ -889,6 +859,8 @@
       appPage.hidden = true; offlineScreen.hidden = false;
       loadingMessage.hidden = false; loadingMessage.innerHTML = offlineMessage; 
       mainImage.hidden = true;
+      setLocationStatus("ইন্টারনেট সংযোগ না থাকায় লোকেশনভিত্তিক আবহাওয়া লোড করা যাচ্ছে না।", true);
+      clearWeatherSummary("ইন্টারনেট সংযোগ নেই");
     }
 
     function setOnlineState() { offlineScreen.hidden = true; appPage.hidden = false; }
