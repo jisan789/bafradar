@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 
   <style>
     :root {
@@ -177,6 +178,7 @@
       position: relative; width: 100%;
     }
     .image-stage img { width: 100%; height: auto; display: block; border-radius: var(--radius); }
+    .image-stage + .embed-grid { margin-top: 1.5rem; }
     
     .loading-note { 
       color: var(--text-muted); font-weight: 500; font-size: 1.1rem; 
@@ -187,7 +189,7 @@
     .embed-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
     .embed-box h3 { font-size: 1.2rem; margin-bottom: 0.25rem; color: var(--text-main); }
     .embed-box p { font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem; }
-    .embed-box iframe, .embed-box img.satellite-image { 
+    .embed-box iframe, .embed-box img.satellite-image, .embed-box img.radar-image, .embed-box .radar-map { 
       border: none; 
       border-radius: var(--radius); 
       width: 100%; 
@@ -197,6 +199,20 @@
       object-fit: cover;
     }
     .single-embed-grid iframe { height: 500px; }
+    .radar-map {
+      height: 540px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .radar-map.leaflet-container {
+      background: #cbd5e1;
+      font-family: var(--font-family);
+    }
+    .embed-meta {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+    }
     .square-frame { aspect-ratio: 1 / 1; }
     .click-blocked { pointer-events: none; }
     .note {
@@ -417,6 +433,15 @@
               <div id="loadingMessage" class="loading-note"><i class="fa-solid fa-image fa-icon"></i> সর্বশেষ চিত্র সংগ্রহ করা হচ্ছে...</div>
               <img id="mainImage" alt="Weather feed image" hidden>
             </div>
+
+            <div class="embed-grid single-embed-grid radar-embed-grid">
+              <div class="embed-box">
+                <h3>রেইনভিউয়ার (RainViewer) লাইভ রাডার</h3>
+                <p>বাংলাদেশ, উত্তর বঙ্গোপসাগর ও আশপাশের অঞ্চলের বৃষ্টি ও মেঘের চলমান রাডার ম্যাপ।</p>
+                <div id="rainviewerMap" class="radar-map" aria-label="RainViewer live radar map"></div>
+                <p id="rainviewerStatus" class="embed-meta">রাডার ম্যাপ প্রস্তুত করা হচ্ছে...</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -466,6 +491,7 @@
     </footer>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
     const feeds =[
       {
@@ -502,6 +528,8 @@
     const loadingMessage = document.getElementById("loadingMessage");
     const mainImage = document.getElementById("mainImage");
     const refreshButton = document.getElementById("refreshButton");
+    const rainviewerMapElement = document.getElementById("rainviewerMap");
+    const rainviewerStatus = document.getElementById("rainviewerStatus");
     
     // Unified metric elements
     const currentTemp = document.getElementById("currentTemp");
@@ -517,6 +545,10 @@
     const mobileSections = Array.from(document.querySelectorAll(".mobile-section"));
 
     const currentWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=23.81&longitude=90.41&current=temperature_2m,wind_speed_10m,weather_code,wind_direction_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FDhaka";
+    const rainviewerApiUrl = "https://api.rainviewer.com/public/weather-maps.json";
+    const rainviewerCenter = { lat: 23.685, lon: 90.3563, zoom: 6, color: 2, options: "1_1" };
+    let rainviewerMap = null;
+    let rainviewerRadarLayer = null;
 
     function getFeedById(id) {
       return feeds.find((feed) => feed.id === id) || feeds[0];
@@ -631,6 +663,67 @@
       return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
     }
 
+    function updateRainviewerStatus(message) {
+      rainviewerStatus.textContent = message;
+    }
+
+    function ensureRainviewerMap() {
+      if (rainviewerMap || typeof L === "undefined") return rainviewerMap;
+
+      rainviewerMap = L.map(rainviewerMapElement, {
+        center: [rainviewerCenter.lat, rainviewerCenter.lon],
+        zoom: rainviewerCenter.zoom,
+        zoomControl: false,
+        attributionControl: true
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(rainviewerMap);
+
+      return rainviewerMap;
+    }
+
+    function invalidateRainviewerMap() {
+      if (!rainviewerMap) return;
+      window.setTimeout(() => rainviewerMap.invalidateSize(), 150);
+    }
+
+    async function loadRainviewerRadar() {
+      try {
+        updateRainviewerStatus("রাডার ম্যাপ প্রস্তুত করা হচ্ছে...");
+        const map = ensureRainviewerMap();
+        if (!map) throw new Error("Leaflet failed to load");
+
+        const res = await fetch(rainviewerApiUrl);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+
+        const data = await res.json();
+        const latestFrame = data?.radar?.past?.[data.radar.past.length - 1];
+        if (!latestFrame?.path || !data?.host) throw new Error("Missing RainViewer radar frame");
+
+        const tileUrl = `${data.host}${latestFrame.path}/256/{z}/{x}/{y}/${rainviewerCenter.color}/${rainviewerCenter.options}.png`;
+        if (rainviewerRadarLayer) {
+          rainviewerMap.removeLayer(rainviewerRadarLayer);
+        }
+
+        rainviewerRadarLayer = L.tileLayer(tileUrl, {
+          tileSize: 256,
+          opacity: 0.75,
+          zIndex: 10,
+          attribution: '&copy; RainViewer'
+        }).addTo(map);
+
+        map.setView([rainviewerCenter.lat, rainviewerCenter.lon], rainviewerCenter.zoom);
+        invalidateRainviewerMap();
+        updateRainviewerStatus(`সর্বশেষ আপডেট: ${formatDate(new Date(latestFrame.time * 1000))}`);
+      } catch (error) {
+        console.error("Unable to load RainViewer radar:", error);
+        updateRainviewerStatus("এই মুহূর্তে RainViewer রাডার লোড করা যাচ্ছে না।");
+      }
+    }
+
     function renderFeedGroups() {
       Object.values(groupTargets).forEach((target) => { target.innerHTML = ""; });
 
@@ -686,11 +779,15 @@
       mobileSections.forEach((panel) => { 
         panel.classList.toggle("mobile-active", panel.dataset.mobileGroup === panelId); 
       });
+      if (panelId === "radar-view") invalidateRainviewerMap();
     }
 
     function startAutoRefresh() {
       if (refreshTimer) window.clearInterval(refreshTimer);
-      refreshTimer = window.setInterval(loadActiveFeed, refreshIntervalMs);
+      refreshTimer = window.setInterval(() => {
+        loadActiveFeed();
+        loadRainviewerRadar();
+      }, refreshIntervalMs);
     }
 
     function loadActiveFeed() {
@@ -717,7 +814,10 @@
       probe.src = cacheBustedUrl;
     }
 
-    refreshButton.addEventListener("click", loadActiveFeed);
+    refreshButton.addEventListener("click", () => {
+      loadActiveFeed();
+      loadRainviewerRadar();
+    });
     
     // Add event listeners to mobile nav tabs
     mobileNavButtons.forEach((button) => { 
@@ -728,7 +828,7 @@
     });
     
     window.addEventListener("offline", setOfflineState);
-    window.addEventListener("online", () => { setOnlineState(); getCurrentWeather(); loadActiveFeed(); });
+    window.addEventListener("online", () => { setOnlineState(); getCurrentWeather(); loadActiveFeed(); loadRainviewerRadar(); });
 
     renderFeedGroups(); 
     updateFeedDisplay(); 
@@ -736,11 +836,12 @@
     setMobilePanel("weather-view"); // Initialize "আবহাওয়া" tab active for mobile initially
     
     if (navigator.onLine) {
-      setOnlineState(); getCurrentWeather(); loadActiveFeed();
+      setOnlineState(); getCurrentWeather(); loadActiveFeed(); loadRainviewerRadar();
     } else {
       setOfflineState(); updateWeatherSummary({
         tempText: "সংযোগ নেই", windText: "সংযোগ নেই", conditionText: "সংযোগ নেই", windDirText: "সংযোগ নেই", precipText: "সংযোগ নেই", sunriseText: "সংযোগ নেই", sunsetText: "সংযোগ নেই"
       });
+      updateRainviewerStatus("ইন্টারনেট সংযোগ না থাকায় RainViewer রাডার দেখানো যাচ্ছে না।");
     }
   </script>
 </body>
