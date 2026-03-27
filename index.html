@@ -150,12 +150,6 @@
     .forecast-summary h2 {
       font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
     }
-    .location-status {
-      display: inline-flex; align-items: center; gap: 0.45rem;
-      margin-bottom: 1rem; padding: 0.55rem 0.85rem; border-radius: 999px;
-      background: #eff6ff; color: #1d4ed8; font-size: 0.95rem; font-weight: 600;
-      border: 1px solid #bfdbfe;
-    }
     .forecast-grid {
       display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0.75rem;
       scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
@@ -175,28 +169,6 @@
     }
     .forecast-icon { margin: 0.5rem 0; line-height: 1; }
     .forecast-temps { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
-    .hourly-summary { margin-top: 1.5rem; }
-    .hourly-summary h2 {
-      font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
-    }
-    .hourly-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-      gap: 0.85rem;
-    }
-    .hourly-card {
-      background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
-      border: 1px solid #dbeafe; border-radius: var(--radius); padding: 0.9rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .hourly-time {
-      display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.6rem;
-    }
-    .hourly-primary {
-      display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.5rem;
-      font-size: 1.15rem; font-weight: 700; color: var(--primary-hover);
-    }
-    .hourly-stats { display: grid; gap: 0.35rem; font-size: 0.92rem; color: var(--text-muted); }
-    .hourly-stats div { display: flex; align-items: center; gap: 0.45rem; }
 
     /* Image Viewer Stage */
     .image-stage {
@@ -388,10 +360,6 @@
             
             <div class="weather-summary" aria-label="Current weather summary">
               <h2>বর্তমান আবহাওয়া</h2>
-              <div id="locationStatus" class="location-status">
-                <i class="fa-solid fa-location-dot"></i>
-                <span>Detecting your location...</span>
-              </div>
               <div class="weather-metrics">
                 <div class="weather-metric">
                   <strong>তাপমাত্রা</strong>
@@ -428,13 +396,6 @@
               <h2>আগামী ৭ দিনের পূর্বাভাস</h2>
               <div id="forecastContainer" class="forecast-grid">
                 <div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> পূর্বাভাস প্রস্তুত করা হচ্ছে...</div>
-              </div>
-            </div>
-
-            <div class="hourly-summary" aria-label="24 hour precipitation forecast">
-              <h2>Next 24 Hours Rain Forecast</h2>
-              <div id="hourlyForecastContainer" class="hourly-grid">
-                <div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> Loading next 24 hours forecast...</div>
               </div>
             </div>
 
@@ -551,13 +512,11 @@
     const currentSunrise = document.getElementById("currentSunrise");
     const currentSunset = document.getElementById("currentSunset");
     const forecastContainer = document.getElementById("forecastContainer");
-    const locationStatus = document.getElementById("locationStatus");
-    const hourlyForecastContainer = document.getElementById("hourlyForecastContainer");
 
     const mobileNavButtons = Array.from(document.querySelectorAll(".mobile-nav-button"));
     const mobileSections = Array.from(document.querySelectorAll(".mobile-section"));
 
-    let activeLocation = null;
+    const currentWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=23.81&longitude=90.41&current=temperature_2m,wind_speed_10m,weather_code,wind_direction_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FDhaka";
 
     function getFeedById(id) {
       return feeds.find((feed) => feed.id === id) || feeds[0];
@@ -602,125 +561,6 @@
       return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
     }
 
-    function formatHourLabel(isoString) {
-      if (!isoString) return "--:--";
-      const date = new Date(isoString);
-      return date.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
-    }
-
-    function setLocationStatus(message, isFallback = false) {
-      locationStatus.innerHTML = `
-        <i class="fa-solid ${isFallback ? "fa-location-crosshairs" : "fa-location-dot"}"></i>
-        <span>${message}</span>
-      `;
-      locationStatus.style.background = isFallback ? "#fff7ed" : "#eff6ff";
-      locationStatus.style.color = isFallback ? "#c2410c" : "#1d4ed8";
-      locationStatus.style.borderColor = isFallback ? "#fdba74" : "#bfdbfe";
-    }
-
-    function buildWeatherUrl(latitude, longitude) {
-      const params = new URLSearchParams({
-        latitude: String(latitude),
-        longitude: String(longitude),
-        current: "temperature_2m,wind_speed_10m,weather_code,wind_direction_10m,precipitation",
-        daily: "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset",
-        timezone: "auto"
-      });
-
-      return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-    }
-
-    function buildHourlyForecastUrl(latitude, longitude) {
-      const params = new URLSearchParams({
-        latitude: String(latitude),
-        longitude: String(longitude),
-        hourly: "precipitation,rain,showers,precipitation_probability",
-        forecast_hours: "24",
-        timezone: "auto"
-      });
-
-      return `https://api.open-meteo.com/v1/forecast?${params.toString()}`;
-    }
-
-    function renderHourlyForecast(hourlyData) {
-      if (!hourlyData || !hourlyData.time || !hourlyData.time.length) {
-        hourlyForecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> 24-hour forecast unavailable.</div>';
-        return;
-      }
-
-      const hoursToShow = Math.min(24, hourlyData.time.length);
-      let html = "";
-
-      for (let i = 0; i < hoursToShow; i++) {
-        const precipitation = Number(hourlyData.precipitation?.[i] ?? 0);
-        const rain = Number(hourlyData.rain?.[i] ?? 0);
-        const showers = Number(hourlyData.showers?.[i] ?? 0);
-        const probability = hourlyData.precipitation_probability?.[i];
-
-        html += `
-          <article class="hourly-card">
-            <span class="hourly-time">${i === 0 ? "Now" : formatHourLabel(hourlyData.time[i])}</span>
-            <div class="hourly-primary">
-              <i class="fa-solid fa-cloud-rain"></i>
-              <span>${toBnNum(precipitation.toFixed(1))} mm</span>
-            </div>
-            <div class="hourly-stats">
-              <div><i class="fa-solid fa-percent fa-icon"></i> Chance: ${toBnNum(probability ?? 0)}%</div>
-              <div><i class="fa-solid fa-droplet fa-icon"></i> Rain: ${toBnNum(rain.toFixed(1))} mm</div>
-              <div><i class="fa-solid fa-cloud-showers-heavy fa-icon"></i> Showers: ${toBnNum(showers.toFixed(1))} mm</div>
-            </div>
-          </article>
-        `;
-      }
-
-      hourlyForecastContainer.innerHTML = html;
-    }
-
-    function clearWeatherSummary(message) {
-      updateWeatherSummary({
-        tempText: message,
-        windText: message,
-        conditionText: message,
-        windDirText: message,
-        precipText: message,
-        sunriseText: message,
-        sunsetText: message
-      });
-      forecastContainer.innerHTML = `<div class="loading-note"><i class="fa-solid fa-location-dot fa-icon"></i> ${message}</div>`;
-      hourlyForecastContainer.innerHTML = `<div class="loading-note"><i class="fa-solid fa-location-dot fa-icon"></i> ${message}</div>`;
-    }
-
-    function getCurrentPosition() {
-      return new Promise((resolve) => {
-        if (!("geolocation" in navigator)) {
-          resolve({
-            granted: false,
-            reason: "এই ব্রাউজারে লোকেশন সুবিধা নেই।"
-          });
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => resolve({
-            granted: true,
-            coords: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            }
-          }),
-          () => resolve({
-            granted: false,
-            reason: "লোকেশন অ্যাক্সেস দিন, তাহলে আপনার বর্তমান অবস্থান অনুযায়ী আবহাওয়া দেখানো হবে।"
-          }),
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 10 * 60 * 1000
-          }
-        );
-      });
-    }
-
     function updateWeatherSummary({ tempText, windText, conditionText, windDirText, precipText, sunriseText, sunsetText }) {
       currentTemp.innerHTML = tempText;
       currentWind.innerHTML = windText;
@@ -751,42 +591,12 @@
       forecastContainer.innerHTML = html;
     }
 
-    function formatDate(date) {
-      return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
-    }
-
     async function getCurrentWeather() {
       try {
-        setLocationStatus("লোকেশন অ্যাক্সেসের অনুরোধ পাঠানো হচ্ছে...");
-        clearWeatherSummary("লোকেশন অনুমতির অপেক্ষায়...");
-
-        const position = await getCurrentPosition();
-        if (!position.granted) {
-          activeLocation = null;
-          setLocationStatus(position.reason, true);
-          clearWeatherSummary("লোকেশন অ্যাক্সেস দিন");
-          return;
-        }
-
-        activeLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        };
-
-        const latText = Number(activeLocation.latitude).toFixed(4);
-        const lonText = Number(activeLocation.longitude).toFixed(4);
-        setLocationStatus(
-          `আপনার লোকেশন পাওয়া গেছে। Lat ${latText}, Lon ${lonText}`
-        );
-
-        const weatherUrl = buildWeatherUrl(activeLocation.latitude, activeLocation.longitude);
-        const hourlyUrl = buildHourlyForecastUrl(activeLocation.latitude, activeLocation.longitude);
-        const [weatherRes, hourlyRes] = await Promise.all([fetch(weatherUrl), fetch(hourlyUrl)]);
-        if (!weatherRes.ok) throw new Error(`Weather status ${weatherRes.status}`);
-        if (!hourlyRes.ok) throw new Error(`Hourly status ${hourlyRes.status}`);
-
-        const [data, hourlyData] = await Promise.all([weatherRes.json(), hourlyRes.json()]);
-
+        const res = await fetch(currentWeatherUrl);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        
         const temp = toBnNum(Math.round(data.current.temperature_2m));
         const wind = toBnNum(Math.round(data.current.wind_speed_10m));
         const code = data.current.weather_code;
@@ -796,24 +606,29 @@
         const sunset = data.daily.sunset[0];
 
         updateWeatherSummary({
-          tempText: `<i class="fa-solid fa-temperature-half fa-icon"></i> ${temp}&deg; C`,
-          windText: `<i class="fa-solid fa-wind fa-icon"></i> ${wind} km/h`,
+          tempText: `<i class="fa-solid fa-temperature-half fa-icon"></i> ${temp}° সে.`,
+          windText: `<i class="fa-solid fa-wind fa-icon"></i> ${wind} কিমি/ঘ.`,
           conditionText: getWeatherCondition(code),
           windDirText: `<i class="fa-regular fa-compass fa-icon"></i> ${getWindDirection(windDir)}`,
-          precipText: `<i class="fa-solid fa-droplet fa-icon"></i> ${precip} mm`,
+          precipText: `<i class="fa-solid fa-droplet fa-icon"></i> ${precip} মিমি`,
           sunriseText: `<i class="fa-regular fa-sun fa-icon"></i> ${formatTime(sunrise)}`,
           sunsetText: `<i class="fa-regular fa-moon fa-icon"></i> ${formatTime(sunset)}`
         });
 
         renderForecast(data.daily);
-        renderHourlyForecast(hourlyData.hourly);
 
       } catch (error) {
         console.error("Unable to load current weather:", error);
-        activeLocation = null;
-        setLocationStatus("লোকেশন পাওয়া যায়নি। অনুগ্রহ করে লোকেশন অ্যাক্সেস দিন।", true);
-        clearWeatherSummary("লোকেশন অ্যাক্সেস প্রয়োজন");
+        updateWeatherSummary({
+          tempText: "তথ্য পাওয়া যায়নি", windText: "তথ্য পাওয়া যায়নি", conditionText: "সংগ্রহ করা যায়নি",
+          windDirText: "তথ্য পাওয়া যায়নি", precipText: "তথ্য পাওয়া যায়নি", sunriseText: "তথ্য পাওয়া যায়নি", sunsetText: "তথ্য পাওয়া যায়নি"
+        });
+        forecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> পূর্বাভাস পাওয়া যায়নি</div>';
       }
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
     }
 
     function renderFeedGroups() {
@@ -859,8 +674,6 @@
       appPage.hidden = true; offlineScreen.hidden = false;
       loadingMessage.hidden = false; loadingMessage.innerHTML = offlineMessage; 
       mainImage.hidden = true;
-      setLocationStatus("ইন্টারনেট সংযোগ না থাকায় লোকেশনভিত্তিক আবহাওয়া লোড করা যাচ্ছে না।", true);
-      clearWeatherSummary("ইন্টারনেট সংযোগ নেই");
     }
 
     function setOnlineState() { offlineScreen.hidden = true; appPage.hidden = false; }
