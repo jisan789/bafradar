@@ -10,22 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
 :root {
-  --bg-color: #FDFBFF;
-  --surface: #FDFBFF;
-  --surface-muted: #F3F3FA;
-  --text-primary: #1A1B1F;
-  --text-secondary: #44474E;
-  --accent: #005AC1;
-  --accent-soft: #D8E2FF;
-  --border-color: #C4C6D0;
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  --bg-color: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --border-color: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 }
 
@@ -64,16 +66,19 @@ body {
 }
 
 .panel {
-  background: var(--surface-muted);
-  border: none;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
-  box-shadow: none;
+  box-shadow: var(--shadow);
   transition: var(--transition);
 }
 
 .panel:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent-soft);
 }
 
 .app-header {
@@ -550,35 +555,37 @@ body {
 
 .tabs {
   display: flex;
-  gap: 12px;
-  padding: 16px 16px 0;
-  border-bottom: 1px solid var(--border-color);
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface-muted);
+  margin: 12px;
+  border-radius: var(--radius-md);
+  border: none;
 }
 
 .tab {
-  padding: 10px 16px;
-  border: 0;
-  border-bottom: 3px solid transparent;
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
   white-space: nowrap;
   transition: var(--transition);
 }
 
 .tab:hover {
-  background: rgba(0, 90, 193, 0.04);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--accent);
 }
 
 .tab.active {
-  border-bottom-color: var(--accent);
+  background: var(--surface);
   color: var(--accent);
-  font-weight: 600;
+  box-shadow: var(--shadow);
 }
 
 .chart-container {
@@ -603,7 +610,7 @@ body {
 }
 
 .chart-wrapper {
-  height: 210px;
+  height: 280px;
   position: relative;
 }
 
@@ -621,6 +628,16 @@ body {
   padding: 16px;
 }
 
+.map-container {
+  width: 100%;
+  height: 350px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: var(--surface-muted);
+  pointer-events: none; /* Disable all interactions */
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -632,30 +649,6 @@ body {
   margin-top: 4px;
   font-size: 1.15rem;
   font-weight: 700;
-}
-
-.satellite-frame {
-  width: min(100%, 600px);
-  margin: 0 auto;
-  overflow: hidden;
-  aspect-ratio: 1 / 1;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--surface-muted);
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.satellite-frame:hover {
-  border-color: rgba(37, 99, 235, 0.32);
-  transform: translateY(-2px);
-}
-
-.satellite-frame img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-  background: #0f172a;
 }
 
 .forecast-container {
@@ -1011,7 +1004,7 @@ body {
           <div class="current-details-list">
             <p><i class="ph ph-cloud-rain"></i><span>বৃষ্টির সম্ভাবনা</span><strong id="current-precip">০%</strong></p>
             <p><i class="ph ph-drop"></i><span>আর্দ্রতা</span><strong id="current-humidity">--%</strong></p>
-            <p><i class="ph ph-wind"></i><span>বাতাস</span><strong id="current-wind">-- কিমি/ঘণ্টা</strong></p>
+            <p><i class="ph ph-wind"></i><span>বায়ুপ্রবাহ</span><strong id="current-wind">-- কিমি/ঘণ্টা</strong></p>
           </div>
         </div>
         <div class="current-location-info">
@@ -1024,8 +1017,8 @@ body {
       <section class="graph-section panel">
         <div class="tabs">
           <button class="tab active" data-tab="temperature">তাপমাত্রা</button>
-          <button class="tab" data-tab="precipitation">বৃষ্টি</button>
-          <button class="tab" data-tab="wind">বাতাস</button>
+          <button class="tab" data-tab="precipitation">বৃষ্টিপাত</button>
+          <button class="tab" data-tab="wind">বায়ুপ্রবাহ</button>
         </div>
         <div class="chart-container">
           <div class="chart-wrapper" id="chart-wrapper">
@@ -1043,16 +1036,11 @@ body {
       <section class="satellite-section panel">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">স্যাটেলাইট ভিউ</p>
-            <h2>হিমাওয়ারি ইনফ্রারেড মেঘের মানচিত্র</h2>
+            <p class="eyebrow">লোকেশন ম্যাপ</p>
+            <h2>আপনার বর্তমান অবস্থান</h2>
           </div>
         </div>
-        <div class="satellite-frame">
-          <img
-            src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56"
-            alt="বাংলাদেশের কাছাকাছি কেন্দ্র করা হিমাওয়ারি স্যাটেলাইট ইনফ্রারেড মেঘের মানচিত্র"
-          >
-        </div>
+        <div id="map" class="map-container"></div>
       </section>
     </div>
 
@@ -1093,7 +1081,7 @@ const forecastContainer = document.getElementById("forecast-container");
 const tabs = document.querySelectorAll(".tab");
 
 // State variables
-const fallbackCity = "Dhaka";
+const fallbackCity = "Kishoreganj";
 const locationCacheKey = "weatherDashboardLocation";
 const locationCacheDuration = 3 * 24 * 60 * 60 * 1000;
 let currentCity = "";
@@ -1107,6 +1095,8 @@ let refreshInterval = null;
 let rainRenderer = null;
 let chartRainRenderer = null;
 let chartWindRenderer = null;
+let map = null;
+let mapMarker = null;
 
 // Event Listeners
 cityInput.addEventListener("keypress", (e) => {
@@ -1750,6 +1740,35 @@ function updateUI() {
   renderCurrentWeather();
   renderChart();
   renderForecast();
+  renderMap();
+}
+
+function renderMap() {
+  const lat = weatherData.coord.lat;
+  const lon = weatherData.coord.lon;
+
+  if (!map) {
+    map = L.map('map', {
+      dragging: false,
+      zoomControl: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false
+    }).setView([lat, lon], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    mapMarker = L.marker([lat, lon]).addTo(map);
+  } else {
+    map.setView([lat, lon], 13);
+    mapMarker.setLatLng([lat, lon]);
+  }
+  
+  // Invalidate size to ensure map renders correctly in hidden/visible panels
+  setTimeout(() => map.invalidateSize(), 100);
 }
 
 function renderCurrentWeather() {
@@ -1796,12 +1815,10 @@ function renderChart() {
     weatherChart.destroy();
   }
 
-  // Seven-day forecast sampled every 3 hours for readability.
   const periods = forecastData.list;
   
-  // Dynamically set width for scrollable area (60px per point)
   const chartWrapper = document.getElementById('chart-wrapper');
-  chartWrapper.style.minWidth = `${Math.max(800, periods.length * 60)}px`;
+  chartWrapper.style.minWidth = `${Math.max(800, periods.length * 75)}px`;
 
   const labels = periods.map(item => {
     const date = new Date(item.dt * 1000);
@@ -1813,23 +1830,37 @@ function renderChart() {
 
   let data = [];
   let label = "";
-  let bgColor = "rgba(37, 99, 235, 0.1)";
-  let borderColor = "#2563eb";
+  let themeColor = "#2563eb";
+  let glowColor = "rgba(37, 99, 235, 0.35)";
 
   if (currentTab === "temperature") {
     data = periods.map(item => isCelsius ? item.main.temp : (item.main.temp * 9/5) + 32);
     label = `তাপমাত্রা (${isCelsius ? '°C' : '°F'})`;
+    themeColor = "#ef4444";
+    glowColor = "rgba(239, 68, 68, 0.35)";
   } else if (currentTab === "precipitation") {
     data = periods.map(item => (item.pop || 0) * 100);
     label = "বৃষ্টির সম্ভাবনা (%)";
-    bgColor = "rgba(14, 165, 233, 0.1)";
-    borderColor = "#0ea5e9";
+    themeColor = "#0ea5e9";
+    glowColor = "rgba(14, 165, 233, 0.35)";
   } else if (currentTab === "wind") {
     data = periods.map(item => isCelsius ? (item.wind.speed * 3.6) : (item.wind.speed * 2.237));
     label = `বাতাসের গতি (${isCelsius ? 'কিমি/ঘণ্টা' : 'মাইল/ঘণ্টা'})`;
-    bgColor = "rgba(22, 163, 74, 0.1)";
-    borderColor = "#16a34a";
+    themeColor = "#10b981";
+    glowColor = "rgba(16, 185, 129, 0.35)";
   }
+
+  const icons = {};
+  periods.forEach((p, i) => {
+    if (i % 2 === 0) { 
+      const icon = p.weather[0].icon;
+      if (!icons[icon]) {
+        const img = new Image();
+        img.src = `https://openweathermap.org/img/wn/${icon}.png`;
+        icons[icon] = img;
+      }
+    }
+  });
 
   weatherChart = new Chart(ctx, {
     type: 'line',
@@ -1844,150 +1875,173 @@ function renderChart() {
           if (!chartArea) return null;
           const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
           if (currentTab === "temperature") {
-            gradient.addColorStop(0, 'rgba(255, 99, 71, 0.25)'); // Tomato/Warm
-            gradient.addColorStop(1, 'rgba(37, 99, 235, 0.05)'); // Blue/Cool
+            gradient.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
           } else if (currentTab === "precipitation") {
-            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.3)');
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.2)');
             gradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
           } else {
-            gradient.addColorStop(0, 'rgba(22, 163, 74, 0.25)');
-            gradient.addColorStop(1, 'rgba(22, 163, 74, 0)');
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
           }
           return gradient;
         },
         borderColor: (context) => {
-          if (currentTab !== "temperature") return borderColor;
+          if (currentTab !== "temperature") return themeColor;
           const chart = context.chart;
           const {ctx, chartArea} = chart;
-          if (!chartArea) return borderColor;
-          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          gradient.addColorStop(0, '#ef4444'); // Hot
-          gradient.addColorStop(1, '#3b82f6'); // Cold
+          if (!chartArea) return themeColor;
+          const gradient = ctx.createLinearGradient(0, chartArea.left, chartArea.right, 0);
+          gradient.addColorStop(0, '#ef4444');
+          gradient.addColorStop(0.5, '#f59e0b');
+          gradient.addColorStop(1, '#3b82f6');
           return gradient;
         },
-        borderWidth: 3,
+        borderWidth: 4,
         fill: true,
-        tension: 0.45,
-        pointBackgroundColor: "#ffffff",
-        pointBorderColor: borderColor,
-        pointBorderWidth: 2,
+        tension: 0.4,
         pointRadius: 0,
-        pointHoverRadius: 6,
-        pointHoverBorderWidth: 3,
-        pointHoverBackgroundColor: (context) => {
-          if (currentTab === "temperature") return "#ef4444";
-          return borderColor;
-        }
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: themeColor,
+        pointHoverBorderWidth: 4,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      hover: {
-        mode: 'index',
-        intersect: false
-      },
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
+      hover: { mode: 'index', intersect: false },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
           enabled: true,
-          position: 'nearest',
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          titleColor: '#1a1c1e',
-          bodyColor: '#1a1c1e',
-          borderColor: '#e1e2ec',
+          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          titleColor: '#0f172a',
+          bodyColor: '#64748b',
+          borderColor: 'rgba(0,0,0,0.05)',
           borderWidth: 1,
           padding: 12,
-          boxPadding: 6,
-          usePointStyle: true,
-          titleFont: { size: 14, weight: '600' },
-          bodyFont: { size: 13 },
-          cornerRadius: 12,
+          cornerRadius: 16,
           displayColors: false,
           callbacks: {
-            label: function(context) {
-              let val = formatNumber(context.parsed.y);
-              let unit = "";
-              if (currentTab === "temperature") unit = isCelsius ? "°C" : "°F";
-              else if (currentTab === "precipitation") unit = "%";
-              else unit = isCelsius ? " কিমি/ঘ" : " মাইল/ঘ";
-              return `${context.dataset.label}: ${val}${unit}`;
-            }
+            label: (c) => `${c.dataset.label}: ${formatNumber(c.parsed.y)}${currentTab === 'temperature' ? '°' : currentTab === 'precipitation' ? '%' : ''}`
           }
         }
       },
       scales: {
         x: {
-          grid: { display: false, drawBorder: false },
-          ticks: { 
-            color: "#667085", 
-            font: { size: 11, weight: '500' },
-            maxRotation: 0,
-            autoSkip: true,
-            padding: 8
+          grid: { display: false },
+          ticks: {
+            color: "#64748b",
+            font: { size: 12, family: 'Hind Siliguri', weight: '600' },
+            padding: 10
           }
         },
         y: {
           display: false,
-          min: Math.min(...data) - (currentTab === "temperature" ? 8 : 2),
-          max: Math.max(...data) + (currentTab === "temperature" ? 8 : 15)
+          min: Math.min(...data) - (currentTab === "temperature" ? 10 : 5),
+          max: Math.max(...data) + (currentTab === "temperature" ? 20 : 25)
         }
       },
-      layout: {
-        padding: { top: 35, bottom: 10 }
-      },
-      animation: {
-        duration: 1000,
-        easing: 'easeOutQuart'
-      }
+      layout: { padding: { top: 70, bottom: 20 } },
+      animation: { duration: 1200, easing: 'easeOutQuart' }
     },
     plugins: [{
-      id: 'crosshair',
-      afterDraw: (chart) => {
-        if (chart.tooltip?._active?.length) {
-          const {ctx} = chart;
-          const {top, bottom} = chart.chartArea;
-          const activePoint = chart.tooltip._active[0];
-          const {x} = activePoint.element;
-          
-          ctx.save();
-          ctx.beginPath();
-          ctx.setLineDash([5, 5]);
-          ctx.moveTo(x, top);
-          ctx.lineTo(x, bottom);
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = 'rgba(0, 90, 193, 0.4)';
-          ctx.stroke();
-          ctx.restore();
-        }
+      id: 'chartGlow',
+      beforeDatasetsDraw(chart) {
+        const {ctx} = chart;
+        ctx.save();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = glowColor;
+        ctx.shadowOffsetY = 8;
+      },
+      afterDatasetsDraw(chart) {
+        chart.ctx.restore();
       }
     }, {
-      id: 'topLabels',
+      id: 'dayDividers',
+      beforeDraw(chart) {
+        const {ctx, chartArea, scales: {x}} = chart;
+        if (!chartArea) return;
+        
+        ctx.save();
+        periods.forEach((p, i) => {
+          if (i === 0) return;
+          const prevDate = new Date(periods[i-1].dt * 1000).toDateString();
+          const currDate = new Date(p.dt * 1000).toDateString();
+          
+          if (prevDate !== currDate) {
+            const xPos = x.getPixelForValue(i);
+            
+            // Draw Dashed Line
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(xPos, chartArea.top - 30);
+            ctx.lineTo(xPos, chartArea.bottom);
+            ctx.stroke();
+            
+            // Draw Day Label
+            ctx.setLineDash([]);
+            ctx.font = '700 11px Hind Siliguri';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'left';
+            const dayName = new Date(p.dt * 1000).toLocaleDateString(locale, {weekday: 'short'});
+            ctx.fillText(dayName.toUpperCase(), xPos + 8, chartArea.top - 20);
+          }
+        });
+        ctx.restore();
+      }
+    }, {
+      id: 'customLabels',
       afterDatasetsDraw(chart) {
         const { ctx, data } = chart;
-        ctx.save();
-        ctx.font = '600 12px Hind Siliguri';
-        ctx.fillStyle = '#1A1B1F';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        
         const meta = chart.getDatasetMeta(0);
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
         meta.data.forEach((point, index) => {
-          const value = formatNumber(data.datasets[0].data[index]);
-          if (currentTab === "wind") {
-            const windDir = formatWindDirection(periods[index].wind.deg);
-            ctx.fillText(value, point.x, point.y - 28);
-            ctx.font = '500 10px Hind Siliguri';
-            ctx.fillStyle = '#44474E';
-            ctx.fillText(windDir, point.x, point.y - 12);
-            ctx.font = '600 12px Hind Siliguri';
-            ctx.fillStyle = '#1A1B1F';
-          } else {
-            ctx.fillText(value + (currentTab === "precipitation" ? "%" : "°"), point.x, point.y - 10);
+          const val = data.datasets[0].data[index];
+          const isPeak = (index > 0 && index < data.length - 1 && val > data.datasets[0].data[index-1] && val > data.datasets[0].data[index+1]);
+          const showIcon = index % 4 === 0 || isPeak; 
+          
+          if (showIcon) {
+            const iconCode = periods[index].weather[0].icon;
+            const img = icons[iconCode];
+            if (img && img.complete) {
+              ctx.drawImage(img, point.x - 15, point.y - 65, 30, 30);
+            }
+          }
+          
+          if (index % 2 === 0) {
+            const text = formatNumber(val) + (currentTab === 'precipitation' ? '%' : '°');
+            ctx.font = '700 12px Hind Siliguri';
+            const textWidth = ctx.measureText(text).width;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            const px = point.x;
+            const py = point.y - 28;
+            const w = textWidth + 14;
+            const h = 22;
+            ctx.roundRect(px - w/2, py - h/2, w, h, 11);
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText(text, px, py);
+
+            if (currentTab === 'wind') {
+              ctx.font = '600 10px Hind Siliguri';
+              ctx.fillStyle = '#94a3b8';
+              ctx.fillText(formatWindDirection(periods[index].wind.deg), px, py + 16);
+            }
           }
         });
         ctx.restore();
