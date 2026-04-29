@@ -635,7 +635,40 @@ body {
   overflow: hidden;
   border: 1px solid var(--border-color);
   background: var(--surface-muted);
-  pointer-events: none; /* Disable all interactions */
+}
+
+.satellite-view-container {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border-color);
+}
+
+.satellite-view-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.satellite-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  z-index: 2;
+  transition: opacity 0.4s ease;
+}
+
+.satellite-loading.fade-out {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .section-heading {
@@ -1033,14 +1066,33 @@ body {
         <div id="forecast-container" class="forecast-container"></div>
       </section>
 
-      <section class="satellite-section panel">
-        <div class="section-heading">
+      <section class="satellite-view-section panel">
+        <div class="section-heading" style="padding: 16px 16px 0;">
+          <div>
+            <p class="eyebrow">লাইভ স্যাটেলাইট</p>
+            <h2>হিমাওয়ারি-৮ ইনফ্রারেড</h2>
+          </div>
+        </div>
+        <div class="satellite-section">
+          <div class="satellite-view-container">
+            <div id="satellite-loader" class="satellite-loading">
+              <div class="spinner" style="border-top-color: #fff;"></div>
+            </div>
+            <img id="satellite-img" src="" alt="স্যাটেলাইট ইমেজ">
+          </div>
+        </div>
+      </section>
+
+      <section class="map-section panel">
+        <div class="section-heading" style="padding: 16px 16px 0;">
           <div>
             <p class="eyebrow">লোকেশন ম্যাপ</p>
             <h2>আপনার বর্তমান অবস্থান</h2>
           </div>
         </div>
-        <div id="map" class="map-container"></div>
+        <div class="satellite-section">
+          <div id="map" class="map-container"></div>
+        </div>
       </section>
     </div>
 
@@ -1074,6 +1126,8 @@ const chartWindCanvasEl = document.getElementById("chart-wind-canvas");
 const cityNameEl = document.getElementById("city-name");
 const currentDayTimeEl = document.getElementById("current-day-time");
 const currentConditionEl = document.getElementById("current-condition");
+const satelliteImgEl = document.getElementById("satellite-img");
+const satelliteLoaderEl = document.getElementById("satellite-loader");
 
 const unitCBtn = document.getElementById("unit-c");
 const unitFBtn = document.getElementById("unit-f");
@@ -1081,7 +1135,7 @@ const forecastContainer = document.getElementById("forecast-container");
 const tabs = document.querySelectorAll(".tab");
 
 // State variables
-const fallbackCity = "Kishorganj";
+const fallbackCity = "Kishoreganj";
 const locationCacheKey = "weatherDashboardLocation";
 const locationCacheDuration = 3 * 24 * 60 * 60 * 1000;
 let currentCity = "";
@@ -1741,6 +1795,44 @@ function updateUI() {
   renderChart();
   renderForecast();
   renderMap();
+  renderSatelliteView();
+}
+
+function renderSatelliteView() {
+  const lat = weatherData.coord.lat;
+  const lon = weatherData.coord.lon;
+  
+  // Show loader
+  satelliteLoaderEl.classList.remove("fade-out");
+  
+  const baseUrl = "https://realearth.ssec.wisc.edu/api/image";
+  const params = new URLSearchParams({
+    products: "HIMAWARI-B13.100",
+    center: `${lat},${lon}`,
+    zoom: "7",
+    width: "660",
+    height: "660",
+    basemap: "satellite",
+    labels: "line",
+    view: "leaflet",
+    timeproduct: "HIMAWARI-B13-GRAD",
+    timespan: "-0t",
+    animate: "true",
+    accesskey: "137140d8cc8792d4073a0d2933fcbe56"
+  });
+
+  const finalUrl = `${baseUrl}?${params.toString()}`;
+  
+  // Update image source
+  satelliteImgEl.onload = () => {
+    satelliteLoaderEl.classList.add("fade-out");
+  };
+  
+  satelliteImgEl.onerror = () => {
+    satelliteLoaderEl.innerHTML = '<p style="font-size: 0.8rem;">ইমেজ লোড করা যায়নি</p>';
+  };
+  
+  satelliteImgEl.src = finalUrl;
 }
 
 function renderMap() {
