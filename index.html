@@ -2,847 +2,2207 @@
 <html lang="bn">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>আঞ্চলিক আবহাওয়া পর্যবেক্ষণ</title>
-  
-  <!-- FontAwesome for Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Google Fonts for Native Bengali Typography -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="একটি পূর্ণাঙ্গ আবহাওয়ার ড্যাশবোর্ড।">
+  <title>আবহাওয়ার ড্যাশবোর্ড</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <style>
-    :root {
-      /* Color Palette */
-      --bg-color: #f4f7f9;
-      --surface-color: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --primary-color: #0284c7;
-      --primary-hover: #0369a1;
-      --border-color: #e2e8f0;
-      
-      /* System */
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --radius: 8px;
-      /* Applied Bengali Font */
-      --font-family: 'Hind Siliguri', sans-serif;
-    }
+:root {
+  --bg-color: #FDFBFF;
+  --surface: #FDFBFF;
+  --surface-muted: #F3F3FA;
+  --text-primary: #1A1B1F;
+  --text-secondary: #44474E;
+  --accent: #005AC1;
+  --accent-soft: #D8E2FF;
+  --border-color: #C4C6D0;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    body {
-      font-family: var(--font-family);
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
+body {
+  min-height: 100vh;
+  padding: 0;
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Roboto', 'Hind Siliguri', sans-serif;
+  overflow-x: hidden;
+}
 
-    [hidden] { display: none !important; }
+.page-glow {
+  display: none;
+}
 
-    button { cursor: pointer; font-family: inherit; border: none; background: none; }
+.dashboard-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-color);
+  animation: pageEnter 0.55s cubic-bezier(0.2, 0, 0, 1) both;
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
 
-    /* Custom Icon Styles */
-    .fa-icon { margin-right: 6px; color: var(--primary-color); }
-    .forecast-icon i { font-size: 1.8rem; color: var(--primary-color); }
+.panel {
+  background: var(--surface-muted);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  transition: var(--transition);
+}
 
-    /* Offline Screen */
-    .offline-screen {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999; color: white;
-    }
+.panel:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
 
-    .offline-card {
-      background: #1e293b; padding: 2.5rem; border-radius: var(--radius);
-      text-align: center; box-shadow: var(--shadow-lg);
-    }
-    .offline-card h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    .offline-card p { color: #94a3b8; }
-    .offline-card i { font-size: 3rem; color: #ef4444; margin-bottom: 1rem; }
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 4px 16px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-color);
+  z-index: 10;
+}
 
-    /* Page & Header Structure */
-    .page { max-width: 1400px; margin: 0 auto; padding: 0 1rem; }
+.app-header h1 {
+  margin-top: 2px;
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
 
-    .topbar {
-      background: var(--surface-color); padding: 1.5rem 1rem; text-align: center;
-      border-bottom: 1px solid var(--border-color); margin: 0 -1rem 1.5rem -1rem; 
-      box-shadow: var(--shadow-sm);
-    }
-    .topbar h1 { font-size: 1.6rem; color: var(--text-main); margin-bottom: 0.5rem; font-weight: 700; }
-    .topbar p { color: var(--text-muted); font-size: 1.05rem; max-width: 700px; margin: 0 auto; }
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
 
-    .scope-note {
-      display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem;
-      background: #e0f2fe; color: #0284c7; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
-    }
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  box-shadow: none;
+}
 
-    /* Panel Design */
-    .panel {
-      background: var(--surface-color); border-radius: var(--radius);
-      border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
-      overflow: hidden;
-    }
-    .panel-title {
-      background: #f8fafc; padding: 1rem 1.5rem; font-size: 1.2rem;
-      border-bottom: 1px solid var(--border-color); font-weight: 600;
-    }
-    .panel-body { padding: 1.5rem; }
+.app-footer {
+  padding: 8px 0 2px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  animation: fadeUp 0.5s ease 0.18s both;
+}
 
-    /* Buttons */
-    #refreshButton {
-      width: 100%; background: var(--primary-color); color: white;
-      padding: 0.75rem; border-radius: var(--radius); font-weight: 600;
-      font-size: 1.1rem; transition: background 0.2s ease;
-    }
-    #refreshButton:hover { background: var(--primary-hover); }
+.search-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-full);
+}
 
-    /* Feed List */
-    fieldset { margin-top: 1.5rem; min-width: 0; border: none;}
-    legend {
-      font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem;
-      font-size: 1rem; letter-spacing: 0.05em;
-    }
-    .feed-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .feed-button {
-      display: flex; flex-direction: column; text-align: left; padding: 0.75rem 1rem;
-      background: var(--bg-color); border: 1px solid var(--border-color);
-      border-radius: var(--radius); transition: all 0.2s ease;
-    }
-    .feed-button:hover { border-color: var(--primary-color); }
-    .feed-button.active {
-      background: #f0f9ff; border-color: var(--primary-color); color: var(--primary-hover);
-      box-shadow: 0 0 0 1px var(--primary-color);
-    }
-    .feed-button span { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem; }
-    .feed-button.active span { color: var(--primary-hover); }
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  transition: var(--transition);
+}
 
-    /* Viewer Header Area */
-    .viewer-top {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
-    }
-    .viewer-top h2 { font-size: 1.35rem; font-weight: 700;}
-    .viewer-top p { color: var(--text-muted); font-size: 1rem; margin-top: 0.25rem; }
+.search-box:focus-within {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
 
-    /* Current Weather Metrics */
-    .weather-summary h2 {
-      font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
-    }
-    .weather-metrics { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem; }
-    .weather-metric {
-      background: var(--bg-color); padding: 0.75rem 1rem; border-radius: var(--radius);
-      flex: 1 1 calc(25% - 10px); min-width: 120px; border: 1px solid var(--border-color);
-      display: flex; flex-direction: column; justify-content: center;
-    }
-    .weather-metric strong {
-      font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;
-    }
-    .weather-metric span { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+.search-icon {
+  margin-right: 12px;
+  color: var(--text-secondary);
+  font-size: 1.3rem;
+}
 
-    /* 7-Day Forecast Grid */
-    .forecast-summary { margin-bottom: 0.5rem; }
-    .forecast-summary h2 {
-      font-size: 1.2rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
-    }
-    .forecast-grid {
-      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 0.75rem;
-      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
-    }
-    .forecast-grid::-webkit-scrollbar { height: 6px; }
-    .forecast-grid::-webkit-scrollbar-track { background: transparent; }
-    .forecast-grid::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-    
-    .forecast-item {
-      background: var(--bg-color); padding: 1rem; border-radius: var(--radius);
-      text-align: center; flex: 0 0 auto; min-width: 95px; border: 1px solid var(--border-color);
-      transition: transform 0.2s ease;
-    }
-    .forecast-item:hover { transform: translateY(-2px); border-color: #bae6fd; }
-    .forecast-day {
-      font-weight: 700; font-size: 1rem; display: block; margin-bottom: 0.5rem; color: var(--text-muted);
-    }
-    .forecast-icon { margin: 0.5rem 0; line-height: 1; }
-    .forecast-temps { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+.search-box input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 400;
+}
 
-    /* Image Viewer Stage */
-    .image-stage {
-      border-radius: var(--radius);
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
-      position: relative; width: 100%;
-    }
-    .image-stage img { width: 100%; height: auto; display: block; border-radius: var(--radius); }
-    .image-stage + .embed-grid { margin-top: 1.5rem; }
-    
-    .loading-note { 
-      color: var(--text-muted); font-weight: 500; font-size: 1.1rem; 
-      padding: 2rem 0; width: 100%; text-align: center;
-    }
+.search-box input::placeholder {
+  color: var(--text-secondary);
+}
 
-    /* Embeds */
-    .embed-grid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
-    .embed-box h3 { font-size: 1.2rem; margin-bottom: 0.25rem; color: var(--text-main); }
-    .embed-box p { font-size: 1rem; color: var(--text-muted); margin-bottom: 1rem; }
-    .embed-box iframe, .embed-box img.satellite-image, .embed-box img.radar-image, .embed-box .radar-map { 
-      border: none; 
-      border-radius: var(--radius); 
-      width: 100%; 
-      background: #cbd5e1; 
-      box-shadow: var(--shadow-sm); 
-      display: block; 
-      object-fit: cover;
-    }
-    .single-embed-grid iframe { height: 500px; }
-    .radar-map {
-      height: 540px;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .radar-map.leaflet-container {
-      background: #cbd5e1;
-      font-family: var(--font-family);
-    }
-    .embed-meta {
-      font-size: 0.92rem;
-      color: var(--text-muted);
-      margin-top: 0.75rem;
-    }
-    .square-frame { aspect-ratio: 1 / 1; }
-    .click-blocked { pointer-events: none; }
-    .note {
-      font-size: 0.95rem; background: #fffbeb; color: #b45309; padding: 0.75rem 1rem;
-      border-radius: var(--radius); margin-bottom: 1.25rem; border: 1px solid #fef3c7; display: flex; align-items: center;
-    }
-    .note i { margin-right: 8px; font-size: 1.2rem;}
+.icon-btn {
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #ffffff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  transition: var(--transition);
+  box-shadow: 0 4px 8px rgba(0, 90, 193, 0.25);
+}
 
-    /* Footer */
-    .site-footer { text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 1rem; font-weight: 500;}
-    .site-footer p { margin-bottom: 0.25rem; }
+.icon-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 90, 193, 0.3);
+}
 
-    /* --- Responsive Layout Structure --- */
-    .layout { display: flex; flex-direction: column; gap: 1.5rem; }
-    .main-content { display: flex; flex-direction: column; gap: 1.5rem; }
+#dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
-    /* Desktop View */
-    @media (min-width: 1024px) {
-      .layout { display: grid; grid-template-columns: 320px 1fr; align-items: start; }
-      .mobile-nav { display: none !important; }
-      .topbar { border-radius: var(--radius); margin: 0 0 1.5rem 0; }
-    }
+#dashboard-content:not(.hidden) > * {
+  animation: fadeUp 0.45s ease both;
+}
 
-    /* Tablets */
-    @media (min-width: 768px) { .satellite-grid { grid-template-columns: 1fr 1fr; } }
+#dashboard-content:not(.hidden) > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
 
-    /* Mobile View (App-like Bottom Navigation) */
-    @media (max-width: 1023px) {
-      body {
-        /* Adds space at the bottom so content doesn't get hidden behind fixed nav */
-        padding-bottom: calc(75px + env(safe-area-inset-bottom));
-      }
-      
-      /* --- NEW: Reordering for Mobile Layout --- */
-      /* This puts the main image section FIRST and the feed selector SECOND */
-      .main-content { order: 1; }
-      aside.panel { order: 2; }
-      
-      .mobile-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: var(--surface-color);
-        display: flex;
-        justify-content: space-around;
-        padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom)) 0;
-        margin: 0;
-        border-top: 1px solid var(--border-color);
-        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
-        z-index: 1000;
-      }
-      
-      .mobile-nav-button {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.35rem;
-        flex: 1;
-        background: transparent;
-        border: none;
-        padding: 0.5rem;
-        border-radius: var(--radius);
-        font-weight: 600;
-        font-size: 0.75rem; /* Smaller text for bottom app nav */
-        color: var(--text-muted);
-        transition: color 0.2s ease;
-      }
-      
-      .mobile-nav-button .fa-icon {
-        margin: 0;
-        font-size: 1.3rem; /* Prominent icons */
-        color: var(--text-muted);
-        transition: color 0.2s ease;
-      }
-      
-      .mobile-nav-button.active {
-        color: var(--primary-color);
-      }
-      
-      .mobile-nav-button.active .fa-icon {
-        color: var(--primary-color);
-      }
-      
-      .weather-metric { flex: 1 1 calc(50% - 10px); }
+#dashboard-content:not(.hidden) > *:nth-child(3) {
+  animation-delay: 0.1s;
+}
 
-      /* Hide panels not active on mobile */
-      .mobile-section { display: none; animation: fadeIn 0.3s ease; }
-      .mobile-section.mobile-active { display: block; }
-    }
+#dashboard-content:not(.hidden) > *:nth-child(4) {
+  animation-delay: 0.15s;
+}
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+.current-weather {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 16px 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.current-main {
+  display: contents;
+}
+
+.weather-animation {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.weather-animation::before,
+.weather-animation::after {
+  content: '';
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.weather-animation.is-calm::before {
+  right: 24px;
+  top: 30px;
+  width: 170px;
+  height: 64px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 26% 48%, #eef2ff 0 26px, transparent 27px),
+    radial-gradient(circle at 52% 34%, #e0f2fe 0 34px, transparent 35px),
+    radial-gradient(circle at 76% 54%, #f1f5f9 0 25px, transparent 26px),
+    linear-gradient(#eef2ff, #eef2ff);
+  background-position: 0 0, 0 0, 0 0, 18px 34px;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 132px 24px;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+  animation: cloudDrift 7s ease-in-out infinite;
+}
+
+.rain-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.sun-orb {
+  position: absolute;
+  right: 32px;
+  top: 26px;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, #fff7b1 0 18%, #fbbf24 52%, #f59e0b 100%);
+  box-shadow:
+    0 0 0 12px rgba(251, 191, 36, 0.12),
+    0 0 36px rgba(245, 158, 11, 0.28);
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.sun-orb::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(245, 158, 11, 0.28) 0deg 9deg,
+      transparent 9deg 22deg
+    );
+  -webkit-mask: radial-gradient(circle, transparent 0 56%, #000 58% 100%);
+  mask: radial-gradient(circle, transparent 0 56%, #000 58% 100%);
+}
+
+.heat-wave {
+  position: absolute;
+  right: 24px;
+  width: 136px;
+  height: 44px;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 54%, rgba(245, 158, 11, 0.28) 56% 60%, transparent 62%);
+  filter: blur(0.2px);
+}
+
+.heat-wave::before,
+.heat-wave::after {
+  content: '';
+  position: absolute;
+  inset: 8px 12px;
+  border-radius: 50%;
+  border-top: 2px solid rgba(245, 158, 11, 0.22);
+}
+
+.heat-wave-one {
+  top: 98px;
+}
+
+.heat-wave-two {
+  top: 128px;
+}
+
+.rain {
+  display: none;
+}
+
+.rain-two {
+  display: none;
+}
+
+.lightning {
+  position: absolute;
+  right: 62px;
+  top: 38px;
+  width: 34px;
+  height: 86px;
+  opacity: 0;
+  background: #facc15;
+  clip-path: polygon(48% 0, 100% 0, 68% 38%, 96% 38%, 26% 100%, 44% 50%, 12% 50%);
+  filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.8));
+}
+
+.weather-animation.is-rain::before,
+.weather-animation.is-thunder::before {
+  left: 28px;
+  top: 22px;
+  width: 188px;
+  height: 74px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 28% 42%, #dbeafe 0 28px, transparent 29px),
+    radial-gradient(circle at 50% 30%, #bfdbfe 0 36px, transparent 37px),
+    radial-gradient(circle at 72% 48%, #dbeafe 0 30px, transparent 31px),
+    linear-gradient(#dbeafe, #dbeafe);
+  background-position: 0 0, 0 0, 0 0, 16px 38px;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 150px 26px;
+  background-repeat: no-repeat;
+  opacity: 0.68;
+}
+
+.weather-animation.is-thunder::before {
+  background:
+    radial-gradient(circle at 28% 42%, #cbd5e1 0 28px, transparent 29px),
+    radial-gradient(circle at 50% 30%, #94a3b8 0 36px, transparent 37px),
+    radial-gradient(circle at 72% 48%, #cbd5e1 0 30px, transparent 31px),
+    linear-gradient(#cbd5e1, #cbd5e1);
+  background-position: 0 0, 0 0, 0 0, 16px 38px;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 150px 26px;
+  background-repeat: no-repeat;
+}
+
+.weather-animation.is-thunder::after {
+  inset: 0;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.weather-animation.is-sunny .sun-orb,
+.weather-animation.is-summer .sun-orb {
+  opacity: 1;
+  animation:
+    sunFloat 5s ease-in-out infinite,
+    sunRaySpin 18s linear infinite;
+}
+
+.weather-animation.is-summer .heat-wave {
+  opacity: 1;
+  animation: heatRise 2.8s ease-in-out infinite;
+}
+
+.weather-animation.is-summer .heat-wave-two {
+  animation-delay: 0.5s;
+}
+
+.weather-animation.is-rain .rain-canvas,
+.weather-animation.is-thunder .rain-canvas {
+  opacity: 1;
+}
+
+.weather-animation.is-thunder .lightning,
+.weather-animation.is-thunder::after {
+  animation: thunderFlash 4.8s linear infinite;
+}
+
+.icon-halo {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  transition: transform 0.2s ease;
+}
+
+.main-icon {
+  width: 78px;
+  height: 78px;
+  animation: iconFloat 4.5s ease-in-out infinite;
+}
+
+.temp-box {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+}
+
+#current-temp {
+  font-size: 4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.unit-toggle {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  margin-left: 4px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.unit-toggle button {
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.unit-toggle button.active {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.divider {
+  margin: 0 2px;
+}
+
+.current-details-list {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.current-details-list p {
+  display: grid;
+  gap: 6px;
+  padding: 16px 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--bg-color);
+  transition: var(--transition);
+  text-align: center;
+  align-items: center;
+  justify-items: center;
+}
+
+.current-details-list p:hover {
+  background: var(--accent-soft);
+}
+
+.current-details-list i {
+  color: var(--accent);
+  font-size: 1.4rem;
+}
+
+.current-details-list span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.current-details-list strong {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.current-location-info {
+  grid-column: 3;
+  grid-row: 1;
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+  min-width: 180px;
+  text-align: right;
+}
+
+#city-name {
+  margin-bottom: 4px;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+#current-day-time,
+#current-condition {
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  font-weight: 400;
+}
+
+#current-condition {
+  margin-top: 4px;
+  text-transform: capitalize;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  padding: 16px 16px 0;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.tab:hover {
+  background: rgba(0, 90, 193, 0.04);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.chart-container {
+  width: 100%;
+  padding: 12px 14px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.chart-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.chart-container::-webkit-scrollbar-track {
+  background: var(--surface-muted);
+}
+
+.chart-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.chart-wrapper {
+  height: 210px;
+  position: relative;
+}
+
+.chart-rain-canvas,
+.chart-wind-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.satellite-section {
+  padding: 16px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.section-heading h2 {
+  margin-top: 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.satellite-frame {
+  width: min(100%, 600px);
+  margin: 0 auto;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.satellite-frame:hover {
+  border-color: rgba(37, 99, 235, 0.32);
+  transform: translateY(-2px);
+}
+
+.satellite-frame img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #0f172a;
+}
+
+.forecast-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 16px;
+}
+
+.forecast-container::-webkit-scrollbar {
+  display: none;
+}
+
+.forecast-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 110px;
+  padding: 18px 14px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.forecast-card:hover,
+.forecast-card.active {
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 90, 193, 0.1);
+}
+
+.forecast-day {
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.forecast-icon {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 8px;
+}
+
+.forecast-temps {
+  display: flex;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.temp-high {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.temp-low {
+  color: var(--text-secondary);
+}
+
+.forecast-wind {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.error-msg {
+  padding: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #b42318;
+  text-align: center;
+}
+
+#loading {
+  padding: 34px 0;
+  text-align: center;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes softPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.05);
+  }
+}
+
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cloudDrift {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes sunFloat {
+  0%, 100% {
+    transform: translateY(0) scale(0.96);
+    box-shadow:
+      0 0 0 12px rgba(251, 191, 36, 0.1),
+      0 0 30px rgba(245, 158, 11, 0.24);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow:
+      0 0 0 20px rgba(251, 191, 36, 0.16),
+      0 0 42px rgba(245, 158, 11, 0.32);
+  }
+}
+
+@keyframes sunRaySpin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes heatRise {
+  0% {
+    transform: translateY(10px) scaleX(0.88);
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(-22px) scaleX(1.12);
+    opacity: 0;
+  }
+}
+
+@keyframes thunderFlash {
+  0%, 82%, 86%, 91%, 100% {
+    opacity: 0;
+  }
+  83%, 84% {
+    opacity: 0.95;
+  }
+  88% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-container {
+    padding: 12px;
+    border-radius: 0;
+  }
+
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .current-weather {
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .icon-halo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .temp-box {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .current-location-info {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+    text-align: center;
+    min-width: 0;
+  }
+
+  .current-details-list {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .current-details-list p {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    text-align: left;
+  }
+
+  .tabs {
+    overflow-x: auto;
+  }
+
+  .satellite-section {
+    padding: 12px;
+  }
+
+  .satellite-frame {
+    width: 100%;
+    border-radius: 10px;
+  }
+
+  .forecast-container {
+    grid-template-columns: repeat(7, 96px);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.65rem;
+  }
+
+  #current-temp {
+    font-size: 3.2rem;
+  }
+
+  .search-section {
+    padding: 8px;
+  }
+
+  .section-heading h2 {
+    font-size: 1rem;
+  }
+}
+
   </style>
+
 </head>
 <body>
-  <div id="offlineScreen" class="offline-screen" hidden>
-    <div class="offline-card">
-      <i class="fa-solid fa-wifi" style="text-decoration: line-through;"></i>
-      <h1>আপনার ইন্টারনেট সংযোগ নেই</h1>
-      <p>আবহাওয়ার সর্বশেষ তথ্য পেতে অনুগ্রহ করে ইন্টারনেট সংযোগ চালু করুন.</p>
-    </div>
-  </div>
+  <div class="page-glow page-glow-one"></div>
+  <div class="page-glow page-glow-two"></div>
 
-  <div id="appPage" class="page">
-    <header class="topbar">
-      <h1>আঞ্চলিক আবহাওয়া পর্যবেক্ষণ</h1>
-      <p>বাংলাদেশ, বঙ্গোপসাগর ও পার্শ্ববর্তী ভারতের রাডার, বায়ুপ্রবাহ এবং স্যাটেলাইটের সরাসরি চিত্র।</p>
-      <div class="scope-note">বাংলাদেশের আবহাওয়া</div>
+  <div class="dashboard-container">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">লাইভ আবহাওয়া</p>
+        <h1>আবহাওয়ার পূর্বাভাস</h1>
+      </div>
+      <div class="status-pill">
+        <i class="ph ph-sparkle"></i>
+        <span>৭ দিনের পূর্বাভাস</span>
+      </div>
     </header>
 
-    <!-- App-like Mobile Bottom Navigation -->
-    <nav class="mobile-nav" aria-label="Mobile section navigation">
-      <button type="button" class="mobile-nav-button active" data-mobile-panel="weather-view">
-        <i class="fa-solid fa-cloud-sun fa-icon"></i> আবহাওয়া
+    <div class="search-section panel">
+      <div class="search-box">
+        <i class="ph ph-magnifying-glass search-icon"></i>
+        <input type="text" id="city" placeholder="শহর খুঁজুন..." autocomplete="off">
+      </div>
+      <button id="location-btn" class="icon-btn" title="বর্তমান লোকেশন ব্যবহার করুন">
+        <i class="ph ph-navigation-arrow"></i>
       </button>
-      <button type="button" class="mobile-nav-button" data-mobile-panel="radar-view">
-        <i class="fa-solid fa-satellite-dish fa-icon"></i> রাডার
-      </button>
-      <button type="button" class="mobile-nav-button" data-mobile-panel="wind-view">
-        <i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহ
-      </button>
-      <button type="button" class="mobile-nav-button" data-mobile-panel="satellite-view">
-        <i class="fa-solid fa-earth-asia fa-icon"></i> স্যাটেলাইট
-      </button>
-    </nav>
-
-    <!-- Unified Responsive Layout -->
-    <div class="layout">
-      
-      <!-- Left Sidebar: Radar Feeds (Hidden on mobile unless Radar tab is active) -->
-      <aside class="panel mobile-section" data-mobile-group="radar-view">
-        <h2 class="panel-title"><i class="fa-solid fa-rss fa-icon"></i> রাডার ফিড</h2>
-        <div class="panel-body">
-          <div class="controls">
-            <button id="refreshButton" type="button"><i class="fa-solid fa-rotate-right fa-icon" style="color:white;"></i> তথ্য হালনাগাদ করুন</button>
-          </div>
-
-          <fieldset>
-            <legend>বাংলাদেশ বিমান বাহিনী (BAF)</legend>
-            <div class="feed-list" id="group-baf"></div>
-          </fieldset>
-
-          <fieldset>
-            <legend>ভারতের আবহাওয়া দপ্তর (IMD)</legend>
-            <div class="feed-list" id="group-imd"></div>
-          </fieldset>
-        </div>
-      </aside>
-
-      <!-- Right Content: Everything Else -->
-      <main class="main-content">
-        
-        <!-- NEW: Weather Overview Section (Shown at the very top/first) -->
-        <section class="panel mobile-section" data-mobile-group="weather-view">
-          <h2 class="panel-title"><i class="fa-solid fa-temperature-half fa-icon"></i> আবহাওয়ার একনজর</h2>
-          <div class="panel-body">
-            
-            <div class="weather-summary" aria-label="Current weather summary">
-              <h2>বর্তমান আবহাওয়া</h2>
-              <div class="weather-metrics">
-                <div class="weather-metric">
-                  <strong>তাপমাত্রা</strong>
-                  <span id="currentTemp"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>অবস্থা</strong>
-                  <span id="currentCondition"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>বাতাসের গতি</strong>
-                  <span id="currentWind"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>বাতাসের দিক</strong>
-                  <span id="currentWindDir"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>বৃষ্টিপাত</strong>
-                  <span id="currentPrecip"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>সূর্যোদয়</strong>
-                  <span id="currentSunrise"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-                <div class="weather-metric">
-                  <strong>সূর্যাস্ত</strong>
-                  <span id="currentSunset"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="forecast-summary" aria-label="7-Day Forecast">
-              <h2>আগামী ৭ দিনের পূর্বাভাস</h2>
-              <div id="forecastContainer" class="forecast-grid">
-                <div class="loading-note"><i class="fa-solid fa-spinner fa-spin fa-icon"></i> পূর্বাভাস প্রস্তুত করা হচ্ছে...</div>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- Radar View Section -->
-        <section class="panel mobile-section" data-mobile-group="radar-view">
-          <h2 class="panel-title"><i class="fa-solid fa-display fa-icon"></i> রাডার চিত্র</h2>
-          <div class="panel-body">
-            <div class="viewer-top">
-              <div>
-                <h2 id="viewerTitle">তথ্য সংগ্রহ করা হচ্ছে...</h2>
-                <p id="viewerDescription">আপনার জন্য সর্বশেষ আবহাওয়া চিত্র প্রস্তুত করা হচ্ছে।</p>
-              </div>
-            </div>
-
-            <div class="image-stage">
-              <div id="loadingMessage" class="loading-note"><i class="fa-solid fa-image fa-icon"></i> সর্বশেষ চিত্র সংগ্রহ করা হচ্ছে...</div>
-              <img id="mainImage" alt="Weather feed image" hidden>
-            </div>
-
-            <div class="embed-grid single-embed-grid radar-embed-grid">
-              <div class="embed-box">
-                <h3>লাইভ রাডার</h3>
-                <p>বাংলাদেশ, উত্তর বঙ্গোপসাগর ও আশপাশের অঞ্চলের বৃষ্টি ও মেঘের চলমান রাডার ম্যাপ।</p>
-                <div id="rainviewerMap" class="radar-map" aria-label="RainViewer live radar map"></div>
-                <p id="rainviewerStatus" class="embed-meta">রাডার ম্যাপ প্রস্তুত করা হচ্ছে...</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Wind View Section -->
-        <section class="panel mobile-section" data-mobile-group="wind-view">
-          <h2 class="panel-title"><i class="fa-solid fa-wind fa-icon"></i> বায়ুপ্রবাহের চিত্র</h2>
-          <div class="panel-body">
-            <div class="embed-grid single-embed-grid">
-              <div class="embed-box satellite-box">
-                <h3>উইন্ডি (Windy) ভূপৃষ্ঠের বায়ুপ্রবাহ</h3>
-                <p>বাংলাদেশ ও বঙ্গোপসাগরের ওপর ECMWF মডেলে বায়ুপ্রবাহের স্তর।</p>
-                <iframe src="https://embed.windy.com/embed2.html?lat=23.839&lon=90.483&detailLat=15.352&detailLon=91.059&width=1450&height=700&zoom=6&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=&calendar=now&=true&type=map&location=coordinates&detail=&metricWind=km%2Fh&metricTemp=default&radarRange=-1" class="click-blocked" title="Windy surface wind" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Satellite View Section -->
-        <section class="panel mobile-section" data-mobile-group="satellite-view">
-          <h2 class="panel-title"><i class="fa-solid fa-satellite fa-icon"></i> স্যাটেলাইটের চিত্র</h2>
-          <div class="panel-body">
-            <p class="note"><i class="fa-solid fa-circle-info"></i> রিয়েলআর্থ (RealEarth) থেকে সরাসরি এই চিত্রগুলো দেখানো হচ্ছে।</p>
-            <div class="embed-grid satellite-grid">
-              
-              <div class="embed-box">
-                <h3>হিমায়ারি ব্যান্ড-১৩ (গ্রেডিয়েন্ট)</h3>
-                <p>বাংলাদেশের ওপর ফোকাস করা ইনফ্রারেড গ্রেডিয়েন্ট স্যাটেলাইট চিত্র।</p>
-                <img class="satellite-image square-frame" src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13-GRAD.100&center=23.836338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&timeproduct=HIMAWARI-B13-GRAD&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56" alt="RealEarth Himawari B13 Gradient" loading="lazy">
-              </div>
-              
-              <div class="embed-box">
-                <h3>হিমায়ারি ব্যান্ড-১৩</h3>
-                <p>বাংলাদেশের ওপর ফোকাস করা হিমায়ারি ব্যান্ড-১৩ এর বর্তমান স্যাটেলাইট চিত্র।</p>
-                <img class="satellite-image square-frame" src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56" alt="RealEarth Himawari B13" loading="lazy">
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-      </main>
     </div>
 
-    <footer class="site-footer">
-      <p>কারিগরি সহায়তায়: জিসান</p>
-      <p>তথ্যসূত্র: বিএমডি, বিএএফ এবং আইএমডি</p>
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+    </div>
+    <div id="error" class="error-msg hidden"></div>
+
+    <div id="dashboard-content" class="hidden">
+      <section class="current-weather panel">
+        <div id="weather-animation" class="weather-animation" aria-hidden="true">
+          <canvas id="rain-canvas" class="rain-canvas"></canvas>
+          <div class="sun-orb"></div>
+          <div class="heat-wave heat-wave-one"></div>
+          <div class="heat-wave heat-wave-two"></div>
+          <div class="rain rain-one"></div>
+          <div class="rain rain-two"></div>
+          <div class="lightning"></div>
+        </div>
+        <div class="current-main">
+          <div class="icon-halo">
+            <img id="current-icon" src="" alt="আবহাওয়ার আইকন" class="main-icon">
+          </div>
+          <div class="temp-box">
+            <span id="current-temp">--</span>
+            <div class="unit-toggle">
+              <button id="unit-c" class="active">&deg;C</button>
+              <span class="divider">|</span>
+              <button id="unit-f">&deg;F</button>
+            </div>
+          </div>
+          <div class="current-details-list">
+            <p><i class="ph ph-cloud-rain"></i><span>বৃষ্টির সম্ভাবনা</span><strong id="current-precip">০%</strong></p>
+            <p><i class="ph ph-drop"></i><span>আর্দ্রতা</span><strong id="current-humidity">--%</strong></p>
+            <p><i class="ph ph-wind"></i><span>বাতাস</span><strong id="current-wind">-- কিমি/ঘণ্টা</strong></p>
+          </div>
+        </div>
+        <div class="current-location-info">
+          <h1 id="city-name">আবহাওয়া</h1>
+          <h3 id="current-day-time">--</h3>
+          <p id="current-condition">--</p>
+        </div>
+      </section>
+
+      <section class="graph-section panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="temperature">তাপমাত্রা</button>
+          <button class="tab" data-tab="precipitation">বৃষ্টি</button>
+          <button class="tab" data-tab="wind">বাতাস</button>
+        </div>
+        <div class="chart-container">
+          <div class="chart-wrapper" id="chart-wrapper">
+            <canvas id="weatherChart"></canvas>
+            <canvas id="chart-rain-canvas" class="chart-rain-canvas"></canvas>
+            <canvas id="chart-wind-canvas" class="chart-wind-canvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="forecast-section">
+        <div id="forecast-container" class="forecast-container"></div>
+      </section>
+
+      <section class="satellite-section panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">স্যাটেলাইট ভিউ</p>
+            <h2>হিমাওয়ারি ইনফ্রারেড মেঘের মানচিত্র</h2>
+          </div>
+        </div>
+        <div class="satellite-frame">
+          <img
+            src="https://realearth.ssec.wisc.edu/api/image?products=HIMAWARI-B13.100&center=23.956338987644573%2C91.00296786577952&zoom=6&width=600&height=600&basemap=satellite&labels=line&timeproduct=HIMAWARI-B13&timespan=-0t&animate=true&accesskey=137140d8cc8792d4073a0d2933fcbe56"
+            alt="বাংলাদেশের কাছাকাছি কেন্দ্র করা হিমাওয়ারি স্যাটেলাইট ইনফ্রারেড মেঘের মানচিত্র"
+          >
+        </div>
+      </section>
+    </div>
+
+    <footer class="app-footer">
+      Developed by Jisan
     </footer>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script>
-    const feeds =[
-      {
-        id: "mtr", group: "baf", category: "BAF", name: "এমটিআর (MTR)",
-        description: "বাংলাদেশ বিমান বাহিনীর অতিরিক্ত রাডার চিত্র।", url: "https://wx.baf.mil.bd/FTP_Folder/mtr.jpg"
-      },
-      {
-        id: "zhrradar", group: "baf", category: "BAF", name: "জেডএইচআর (ZHR) রাডার",
-        description: "বর্তমান পরিস্থিতি তাৎক্ষণিক পর্যবেক্ষণের জন্য বিমান বাহিনীর রাডার চিত্র।", url: "https://wx.baf.mil.bd/FTP_Folder/zhrradar.jpg"
-      },
-      {
-        id: "mosradar", group: "baf", category: "BAF", name: "এমওএস (MOS) রাডার",
-        description: "বাংলাদেশ বিমান বাহিনীর প্রধান আবহাওয়া রাডার চিত্র।", url: "https://wx.baf.mil.bd/ftp_folder/mosradar.jpg"
-      },
-      {
-        id: "imd-ppz-agt", group: "imd", category: "IMD", name: "আইএমডি আগরতলা পিপিজেড",
-        description: "আগরতলা পিপিজেড (PPZ) বৃষ্টিপাত পর্যবেক্ষণ রাডার চিত্র।", url: "https://mausam.imd.gov.in/Radar/ppz_agt.gif"
+    const apiKey = "98591e47bcb9883f280386e8ef804bb3";
+const openMeteoBaseUrl = "https://api.open-meteo.com/v1/forecast";
+const locale = "bn-BD";
+const numberFormatter = new Intl.NumberFormat(locale);
+
+// DOM Elements
+const cityInput = document.getElementById("city");
+const locationBtn = document.getElementById("location-btn");
+const dashboardContent = document.getElementById("dashboard-content");
+const errorDiv = document.getElementById("error");
+const loadingDiv = document.getElementById("loading");
+
+const currentTempEl = document.getElementById("current-temp");
+const currentIconEl = document.getElementById("current-icon");
+const currentPrecipEl = document.getElementById("current-precip");
+const currentHumidityEl = document.getElementById("current-humidity");
+const currentWindEl = document.getElementById("current-wind");
+const weatherAnimationEl = document.getElementById("weather-animation");
+const rainCanvasEl = document.getElementById("rain-canvas");
+const chartRainCanvasEl = document.getElementById("chart-rain-canvas");
+const chartWindCanvasEl = document.getElementById("chart-wind-canvas");
+const cityNameEl = document.getElementById("city-name");
+const currentDayTimeEl = document.getElementById("current-day-time");
+const currentConditionEl = document.getElementById("current-condition");
+
+const unitCBtn = document.getElementById("unit-c");
+const unitFBtn = document.getElementById("unit-f");
+const forecastContainer = document.getElementById("forecast-container");
+const tabs = document.querySelectorAll(".tab");
+
+// State variables
+const fallbackCity = "Dhaka";
+const locationCacheKey = "weatherDashboardLocation";
+const locationCacheDuration = 3 * 24 * 60 * 60 * 1000;
+let currentCity = "";
+let currentCoords = null;
+let isCelsius = true;
+let weatherData = null;
+let forecastData = null;
+let weatherChart = null;
+let currentTab = "temperature";
+let refreshInterval = null;
+let rainRenderer = null;
+let chartRainRenderer = null;
+let chartWindRenderer = null;
+
+// Event Listeners
+cityInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter" && cityInput.value.trim()) {
+    currentCity = cityInput.value.trim();
+    fetchData(currentCity);
+  }
+});
+
+locationBtn.addEventListener("click", () => {
+  fetchCurrentLocation();
+});
+
+unitCBtn.addEventListener("click", () => {
+  if (!isCelsius) {
+    isCelsius = true;
+    unitCBtn.classList.add("active");
+    unitFBtn.classList.remove("active");
+    updateUI();
+  }
+});
+
+unitFBtn.addEventListener("click", () => {
+  if (isCelsius) {
+    isCelsius = false;
+    unitFBtn.classList.add("active");
+    unitCBtn.classList.remove("active");
+    updateUI();
+  }
+});
+
+tabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    tabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentTab = tab.dataset.tab;
+    renderChart();
+  });
+});
+
+// Initialization
+initializeLocation();
+startAutoRefresh();
+
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    if (currentCoords) {
+      fetchDataByCoords(currentCoords.lat, currentCoords.lon, true);
+    } else if (currentCity) {
+      fetchData(currentCity, true);
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+}
+
+function initializeLocation() {
+  const savedLocation = getSavedLocation();
+
+  if (savedLocation?.type === "coords") {
+    fetchDataByCoords(savedLocation.lat, savedLocation.lon);
+    return;
+  }
+
+  if (savedLocation?.type === "city") {
+    fetchData(savedLocation.city);
+    return;
+  }
+
+  fetchCurrentLocation(true);
+}
+
+function getSavedLocation() {
+  try {
+    const savedLocation = JSON.parse(localStorage.getItem(locationCacheKey));
+
+    if (!savedLocation || Date.now() > savedLocation.expiresAt) {
+      localStorage.removeItem(locationCacheKey);
+      return null;
+    }
+
+    return savedLocation;
+  } catch (err) {
+    localStorage.removeItem(locationCacheKey);
+    return null;
+  }
+}
+
+function saveCityLocation(city) {
+  saveLocation({
+    type: "city",
+    city
+  });
+}
+
+function saveCoordsLocation(lat, lon) {
+  saveLocation({
+    type: "coords",
+    lat,
+    lon
+  });
+}
+
+function saveLocation(location) {
+  try {
+    localStorage.setItem(
+      locationCacheKey,
+      JSON.stringify({
+        ...location,
+        expiresAt: Date.now() + locationCacheDuration
+      })
+    );
+  } catch (err) {
+    // Storage can be unavailable in private browsing or restricted environments.
+  }
+}
+
+function fetchCurrentLocation(useFallback = false) {
+  if (!navigator.geolocation) {
+    if (useFallback) {
+      fetchData(fallbackCity);
+    } else {
+      showError("এই ব্রাউজারে লোকেশন সাপোর্ট নেই।");
+    }
+    return;
+  }
+
+  showLoading();
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      fetchDataByCoords(lat, lon);
+    },
+    () => {
+      if (useFallback) {
+        fetchData(fallbackCity);
+      } else {
+        showError("লোকেশন অনুমতি দেওয়া হয়নি। অনুগ্রহ করে শহর লিখে খুঁজুন।");
       }
-    ];
+    }
+  );
+}
 
-    const refreshIntervalMs = 5 * 60 * 1000;
-    let activeFeedId = feeds[0].id;
-    let refreshTimer = null;
+// Fetch Functions
+async function fetchData(city, silent = false) {
+  if (!silent) showLoading();
+  try {
+    const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric&lang=bn`);
 
-    const groupTargets = {
-      baf: document.getElementById("group-baf"),
-      imd: document.getElementById("group-imd")
-    };
+    if (!weatherRes.ok) throw new Error("শহর খুঁজে পাওয়া যায়নি।");
 
-    const appPage = document.getElementById("appPage");
-    const offlineScreen = document.getElementById("offlineScreen");
-    const viewerTitle = document.getElementById("viewerTitle");
-    const viewerDescription = document.getElementById("viewerDescription");
-    const loadingMessage = document.getElementById("loadingMessage");
-    const mainImage = document.getElementById("mainImage");
-    const refreshButton = document.getElementById("refreshButton");
-    const rainviewerMapElement = document.getElementById("rainviewerMap");
-    const rainviewerStatus = document.getElementById("rainviewerStatus");
+    weatherData = await weatherRes.json();
+    forecastData = await fetchExtendedForecast(
+      weatherData.coord.lat,
+      weatherData.coord.lon
+    );
     
-    // Unified metric elements
-    const currentTemp = document.getElementById("currentTemp");
-    const currentWind = document.getElementById("currentWind");
-    const currentCondition = document.getElementById("currentCondition");
-    const currentWindDir = document.getElementById("currentWindDir");
-    const currentPrecip = document.getElementById("currentPrecip");
-    const currentSunrise = document.getElementById("currentSunrise");
-    const currentSunset = document.getElementById("currentSunset");
-    const forecastContainer = document.getElementById("forecastContainer");
+    currentCity = weatherData.name;
+    currentCoords = null;
+    saveCityLocation(currentCity);
+    updateUI();
+  } catch (err) {
+    if (!silent) showError(err.message);
+  }
+}
 
-    const mobileNavButtons = Array.from(document.querySelectorAll(".mobile-nav-button"));
-    const mobileSections = Array.from(document.querySelectorAll(".mobile-section"));
+async function fetchDataByCoords(lat, lon, silent = false) {
+  if (!silent) showLoading();
+  try {
+    const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=bn`);
 
-    const currentWeatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=23.81&longitude=90.41&current=temperature_2m,wind_speed_10m,weather_code,wind_direction_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Asia%2FDhaka";
-    const rainviewerApiUrl = "https://api.rainviewer.com/public/weather-maps.json";
-    const rainviewerCenter = { lat: 23.685, lon: 90.3563, zoom: 6, color: 2, options: "1_1" };
-    let rainviewerMap = null;
-    let rainviewerRadarLayer = null;
+    if (!weatherRes.ok) throw new Error("লোকেশন খুঁজে পাওয়া যায়নি।");
 
-    function getFeedById(id) {
-      return feeds.find((feed) => feed.id === id) || feeds[0];
+    weatherData = await weatherRes.json();
+    forecastData = await fetchExtendedForecast(lat, lon);
+    
+    currentCity = weatherData.name;
+    currentCoords = { lat, lon };
+    saveCoordsLocation(lat, lon);
+    updateUI();
+  } catch (err) {
+    if (!silent) showError(err.message);
+  }
+}
+
+async function fetchExtendedForecast(lat, lon) {
+  const params = new URLSearchParams({
+    latitude: lat,
+    longitude: lon,
+    timezone: "auto",
+    forecast_days: "7",
+    hourly: [
+      "temperature_2m",
+      "precipitation_probability",
+      "wind_speed_10m",
+      "wind_direction_10m",
+      "weather_code"
+    ].join(","),
+    daily: [
+      "weather_code",
+      "temperature_2m_max",
+      "temperature_2m_min"
+    ].join(",")
+  });
+
+  const response = await fetch(`${openMeteoBaseUrl}?${params.toString()}`);
+  if (!response.ok) throw new Error("পূর্বাভাস পাওয়া যাচ্ছে না।");
+
+  const data = await response.json();
+  return normalizeForecastData(data);
+}
+
+function normalizeForecastData(data) {
+  const periods = data.hourly.time
+    .map((time, index) => {
+      const date = new Date(time);
+
+      // Keep the chart readable while extending the range to 7 days.
+      if (date.getHours() % 3 !== 0) return null;
+
+      return {
+        dt: Math.floor(date.getTime() / 1000),
+        main: {
+          temp: data.hourly.temperature_2m[index]
+        },
+        pop: (data.hourly.precipitation_probability[index] || 0) / 100,
+        wind: {
+          speed: (data.hourly.wind_speed_10m[index] || 0) / 3.6,
+          deg: data.hourly.wind_direction_10m[index]
+        },
+        weather: [{
+          icon: mapWeatherCodeToIcon(data.hourly.weather_code[index]),
+          code: data.hourly.weather_code[index]
+        }]
+      };
+    })
+    .filter(Boolean);
+
+  const daily = data.daily.time.map((time, index) => {
+    const date = new Date(time);
+    const dayPeriods = periods.filter((period) => {
+      const periodDate = new Date(period.dt * 1000);
+      return periodDate.toDateString() === date.toDateString();
+    });
+    const firstIndex = periods.findIndex((period) => {
+      const periodDate = new Date(period.dt * 1000);
+      return periodDate.toDateString() === date.toDateString();
+    });
+
+    return {
+      day: date.toLocaleDateString(locale, { weekday: "short" }),
+      icon: mapWeatherCodeToIcon(data.daily.weather_code[index]),
+      maxTemp: data.daily.temperature_2m_max[index],
+      minTemp: data.daily.temperature_2m_min[index],
+      windDeg: getAverageWindDirection(dayPeriods),
+      windSpeed: getAverageWindSpeed(dayPeriods),
+      firstIndex: firstIndex === -1 ? 0 : firstIndex
+    };
+  });
+
+  return { list: periods, daily };
+}
+
+function mapWeatherCodeToIcon(code) {
+  if (code === 0) return "01d";
+  if (code === 1) return "02d";
+  if (code === 2) return "03d";
+  if (code === 3) return "04d";
+  if ([45, 48].includes(code)) return "50d";
+  if ([51, 53, 55, 56, 57].includes(code)) return "09d";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "10d";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "13d";
+  if ([95, 96, 99].includes(code)) return "11d";
+  return "03d";
+}
+
+function getWeatherAnimationType(weather, tempCelsius) {
+  const id = weather?.id;
+  const icon = weather?.icon || "";
+  const description = (weather?.description || "").toLowerCase();
+
+  if (id >= 200 && id < 300) return "thunder";
+  if ((id >= 300 && id < 600) || description.includes("rain")) return "rain";
+  if (typeof tempCelsius === "number" && tempCelsius >= 32) return "summer";
+  if (id === 800 || icon.includes("01")) return "sunny";
+  if (description.includes("hot") || description.includes("summer")) return "summer";
+  return "calm";
+}
+
+function updateWeatherAnimation(weather, tempCelsius) {
+  if (!weatherAnimationEl) return;
+
+  const animationType = getWeatherAnimationType(weather, tempCelsius);
+  weatherAnimationEl.className = `weather-animation is-${animationType}`;
+
+  if (animationType === "rain" || animationType === "thunder") {
+    if (!rainRenderer && rainCanvasEl) {
+      rainRenderer = new RainRenderer(rainCanvasEl);
+    }
+    rainRenderer?.start();
+  } else {
+    rainRenderer?.stop();
+  }
+}
+
+class RainRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.context = canvas.getContext("2d");
+    this.rainDrops = [];
+    this.animationFrame = null;
+    this.isRunning = false;
+    this.pixelRatio = window.devicePixelRatio || 1;
+    this.boundRender = this.render.bind(this);
+    this.boundResize = this.resize.bind(this);
+    this.clipPath = null;
+  }
+
+  setClipPath(pathFn) {
+    this.clipPath = pathFn;
+  }
+
+  start() {
+    this.resize();
+    window.addEventListener("resize", this.boundResize);
+
+    if (!this.rainDrops.length) {
+      this.createRainDrops(220, true);
     }
 
-    function toBnNum(num) {
-      if (num === null || num === undefined) return "০";
-      return new Intl.NumberFormat('bn-BD').format(num);
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.render();
+    }
+  }
+
+  stop() {
+    this.isRunning = false;
+    window.removeEventListener("resize", this.boundResize);
+
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
     }
 
-    function getWeatherCondition(code) {
-      if (code === 0) return '<i class="fa-solid fa-sun fa-icon"></i> আকাশ পরিষ্কার';
-      if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud fa-icon"></i> মেঘলা আকাশ';
-      if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog fa-icon"></i> কুয়াশাচ্ছন্ন';
-      if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-rain fa-icon"></i> গুঁড়ি গুঁড়ি বৃষ্টি';
-      if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake fa-icon"></i> তুষারপাত';
-      if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-showers-heavy fa-icon"></i> বৃষ্টিপাত';
-      if (code >= 95) return '<i class="fa-solid fa-cloud-bolt fa-icon"></i> বজ্রসহ বৃষ্টিপাত';
-      return '<i class="fa-solid fa-circle-question fa-icon"></i> অজানা অবস্থা';
+    this.context?.clearRect(0, 0, this.width || 0, this.height || 0);
+    this.rainDrops = [];
+  }
+
+  resize() {
+    const rect = this.canvas.getBoundingClientRect();
+    this.width = Math.max(1, rect.width);
+    this.height = Math.max(1, rect.height);
+    this.pixelRatio = window.devicePixelRatio || 1;
+
+    this.canvas.width = Math.floor(this.width * this.pixelRatio);
+    this.canvas.height = Math.floor(this.height * this.pixelRatio);
+    this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+  }
+
+  getRandomValue(range) {
+    return range.min + (range.max - range.min) * Math.random();
+  }
+
+  createRainDrops(count, toInit) {
+    for (let i = 0; i < count; i++) {
+      this.rainDrops.push(new RainDrop(this.width, this.height, toInit, this));
+    }
+  }
+
+  render() {
+    if (!this.isRunning) return;
+
+    this.animationFrame = requestAnimationFrame(this.boundRender);
+    this.context.clearRect(0, 0, this.width, this.height);
+
+    if (this.clipPath) {
+      this.context.save();
+      this.clipPath(this.context);
+      this.context.clip();
     }
 
-    function getWeatherIcon(code) {
-      if (code === 0) return '<i class="fa-solid fa-sun"></i>';
-      if (code >= 1 && code <= 3) return '<i class="fa-solid fa-cloud"></i>';
-      if (code >= 45 && code <= 48) return '<i class="fa-solid fa-smog"></i>';
-      if (code >= 51 && code <= 67) return '<i class="fa-solid fa-cloud-rain"></i>';
-      if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake"></i>';
-      if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-showers-heavy"></i>';
-      if (code >= 95) return '<i class="fa-solid fa-cloud-bolt"></i>';
-      return '<i class="fa-solid fa-circle-question"></i>';
-    }
-
-    function getWindDirection(degrees) {
-      const directions =["উত্তর", "উত্তর-পূর্ব", "পূর্ব", "দক্ষিণ-পূর্ব", "দক্ষিণ", "দক্ষিণ-পশ্চিম", "পশ্চিম", "উত্তর-পশ্চিম"];
-      const index = Math.round(((degrees %= 360) < 0 ? degrees + 360 : degrees) / 45) % 8;
-      return directions[index];
-    }
-
-    function formatTime(isoString) {
-      if (!isoString) return "প্রযোজ্য নয়";
-      const date = new Date(isoString);
-      return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function updateWeatherSummary({ tempText, windText, conditionText, windDirText, precipText, sunriseText, sunsetText }) {
-      currentTemp.innerHTML = tempText;
-      currentWind.innerHTML = windText;
-      currentCondition.innerHTML = conditionText;
-      currentWindDir.innerHTML = windDirText;
-      currentPrecip.innerHTML = precipText;
-      currentSunrise.innerHTML = sunriseText;
-      currentSunset.innerHTML = sunsetText;
-    }
-
-    function renderForecast(dailyData) {
-      let html = "";
-      for (let i = 0; i < dailyData.time.length; i++) {
-        const date = new Date(dailyData.time[i]);
-        const dayStr = i === 0 ? "আজ" : date.toLocaleDateString("bn-BD", { weekday: "long" });
-        const maxT = toBnNum(Math.round(dailyData.temperature_2m_max[i]));
-        const minT = toBnNum(Math.round(dailyData.temperature_2m_min[i]));
-        const icon = getWeatherIcon(dailyData.weather_code[i]);
-
-        html += `
-          <div class="forecast-item">
-            <span class="forecast-day">${dayStr}</span>
-            <div class="forecast-icon">${icon}</div>
-            <div class="forecast-temps">${maxT}° / ${minT}°</div>
-          </div>
-        `;
+    for (let i = this.rainDrops.length - 1; i >= 0; i--) {
+      if (!this.rainDrops[i].render(this.context, false)) {
+        this.rainDrops.splice(i, 1);
       }
-      forecastContainer.innerHTML = html;
     }
 
-    async function getCurrentWeather() {
-      try {
-        const res = await fetch(currentWeatherUrl);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        const data = await res.json();
-        
-        const temp = toBnNum(Math.round(data.current.temperature_2m));
-        const wind = toBnNum(Math.round(data.current.wind_speed_10m));
-        const code = data.current.weather_code;
-        const windDir = data.current.wind_direction_10m;
-        const precip = toBnNum(data.current.precipitation);
-        const sunrise = data.daily.sunrise[0];
-        const sunset = data.daily.sunset[0];
-
-        updateWeatherSummary({
-          tempText: `<i class="fa-solid fa-temperature-half fa-icon"></i> ${temp}° সে.`,
-          windText: `<i class="fa-solid fa-wind fa-icon"></i> ${wind} কিমি/ঘ.`,
-          conditionText: getWeatherCondition(code),
-          windDirText: `<i class="fa-regular fa-compass fa-icon"></i> ${getWindDirection(windDir)}`,
-          precipText: `<i class="fa-solid fa-droplet fa-icon"></i> ${precip} মিমি`,
-          sunriseText: `<i class="fa-regular fa-sun fa-icon"></i> ${formatTime(sunrise)}`,
-          sunsetText: `<i class="fa-regular fa-moon fa-icon"></i> ${formatTime(sunset)}`
-        });
-
-        renderForecast(data.daily);
-
-      } catch (error) {
-        console.error("Unable to load current weather:", error);
-        updateWeatherSummary({
-          tempText: "তথ্য পাওয়া যায়নি", windText: "তথ্য পাওয়া যায়নি", conditionText: "সংগ্রহ করা যায়নি",
-          windDirText: "তথ্য পাওয়া যায়নি", precipText: "তথ্য পাওয়া যায়নি", sunriseText: "তথ্য পাওয়া যায়নি", sunsetText: "তথ্য পাওয়া যায়নি"
-        });
-        forecastContainer.innerHTML = '<div class="loading-note"><i class="fa-solid fa-triangle-exclamation fa-icon"></i> পূর্বাভাস পাওয়া যায়নি</div>';
+    for (let i = this.rainDrops.length - 1; i >= 0; i--) {
+      if (!this.rainDrops[i].render(this.context, true)) {
+        this.rainDrops.splice(i, 1);
       }
     }
 
-    function formatDate(date) {
-      return new Intl.DateTimeFormat("bn-BD", { dateStyle: "medium", timeStyle: "medium" }).format(date);
+    if (this.clipPath) {
+      this.context.restore();
     }
 
-    function updateRainviewerStatus(message) {
-      rainviewerStatus.textContent = message;
+    this.createRainDrops(5, false);
+  }
+}
+
+class RainDrop {
+  constructor(width, height, toInit, renderer) {
+    this.width = width;
+    this.height = height;
+    this.toInit = toInit;
+    this.renderer = renderer;
+    this.init();
+  }
+
+  init() {
+    this.scale = this.renderer.getRandomValue({ min: 0.28, max: 1 });
+    this.length = 22 * this.scale;
+    this.vx = this.renderer.getRandomValue({ min: -1.6, max: -0.8 }) * this.scale;
+    this.vy = 3.2 * this.scale;
+    this.ay = 0.018 * this.scale;
+    this.theta = Math.atan2(this.vy, this.vx);
+    this.offset = this.height * 0.04;
+    this.x = this.renderer.getRandomValue({ min: 0, max: this.width + 60 });
+    this.y = (this.toInit ? this.renderer.getRandomValue({ min: 0, max: this.height }) : 0) - this.offset;
+    this.radius = this.length * 0.02;
+  }
+
+  render(context, toFront) {
+    const frontThreshold = 0.78;
+    if ((toFront && this.scale < frontThreshold) || (!toFront && this.scale >= frontThreshold)) {
+      return true;
     }
 
-    function ensureRainviewerMap() {
-      if (rainviewerMap || typeof L === "undefined") return rainviewerMap;
+    context.save();
+    context.strokeStyle = "rgba(37, 99, 235, 0.34)";
 
-      rainviewerMap = L.map(rainviewerMapElement, {
-        center: [rainviewerCenter.lat, rainviewerCenter.lon],
-        zoom: rainviewerCenter.zoom,
-        zoomControl: false,
-        attributionControl: true
-      });
+    if (this.y >= this.height * (1 - (1 - this.scale) * 0.58) - this.offset) {
+      context.lineWidth = 2;
+      context.globalAlpha = Math.max(0, (1 - this.radius / this.length / 0.22) * 0.45);
+      context.beginPath();
+      context.arc(this.x, this.y, this.radius, Math.PI, Math.PI * 2, false);
+      context.stroke();
+      context.restore();
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(rainviewerMap);
-
-      return rainviewerMap;
+      this.radius *= 1.08;
+      return this.radius <= this.length * 0.22;
     }
 
-    function invalidateRainviewerMap() {
-      if (!rainviewerMap) return;
-      window.setTimeout(() => rainviewerMap.invalidateSize(), 150);
+    context.lineWidth = this.scale > frontThreshold ? 1.4 : 0.8;
+    context.globalAlpha = this.scale > frontThreshold ? 0.55 : 0.32;
+    context.beginPath();
+    context.moveTo(this.x, this.y);
+    context.lineTo(this.x + this.length * Math.cos(this.theta), this.y + this.length * Math.sin(this.theta));
+    context.stroke();
+    context.restore();
+
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += this.ay;
+    return true;
+  }
+}
+
+class WindRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.context = canvas.getContext("2d");
+    this.particles = [];
+    this.animationFrame = null;
+    this.isRunning = false;
+    this.pixelRatio = window.devicePixelRatio || 1;
+    this.boundRender = this.render.bind(this);
+    this.boundResize = this.resize.bind(this);
+    this.clipPath = null;
+  }
+
+  setClipPath(pathFn) {
+    this.clipPath = pathFn;
+  }
+
+  start() {
+    this.resize();
+    window.addEventListener("resize", this.boundResize);
+    if (!this.particles.length) {
+      this.createParticles(70);
+    }
+    if (!this.isRunning) {
+      this.isRunning = true;
+      this.render();
+    }
+  }
+
+  stop() {
+    this.isRunning = false;
+    window.removeEventListener("resize", this.boundResize);
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+    this.context?.clearRect(0, 0, this.width || 0, this.height || 0);
+    this.particles = [];
+  }
+
+  resize() {
+    const rect = this.canvas.getBoundingClientRect();
+    this.width = Math.max(1, rect.width);
+    this.height = Math.max(1, rect.height);
+    this.pixelRatio = window.devicePixelRatio || 1;
+    this.canvas.width = Math.floor(this.width * this.pixelRatio);
+    this.canvas.height = Math.floor(this.height * this.pixelRatio);
+    this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+  }
+
+  createParticles(count) {
+    for (let i = 0; i < count; i++) {
+      this.particles.push(new WindParticle(this.width, this.height));
+    }
+  }
+
+  render() {
+    if (!this.isRunning) return;
+    this.animationFrame = requestAnimationFrame(this.boundRender);
+    this.context.clearRect(0, 0, this.width, this.height);
+
+    if (this.clipPath) {
+      this.context.save();
+      this.clipPath(this.context);
+      this.context.clip();
     }
 
-    async function loadRainviewerRadar() {
-      try {
-        updateRainviewerStatus("রাডার ম্যাপ প্রস্তুত করা হচ্ছে...");
-        const map = ensureRainviewerMap();
-        if (!map) throw new Error("Leaflet failed to load");
+    this.particles.forEach(p => p.update(this.width, this.height));
+    this.particles.forEach(p => p.draw(this.context));
 
-        const res = await fetch(rainviewerApiUrl);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+    if (this.clipPath) {
+      this.context.restore();
+    }
+  }
+}
 
-        const data = await res.json();
-        const latestFrame = data?.radar?.past?.[data.radar.past.length - 1];
-        if (!latestFrame?.path || !data?.host) throw new Error("Missing RainViewer radar frame");
+class WindParticle {
+  constructor(width, height) {
+    this.init(width, height, true);
+  }
 
-        const tileUrl = `${data.host}${latestFrame.path}/256/{z}/{x}/{y}/${rainviewerCenter.color}/${rainviewerCenter.options}.png`;
-        if (rainviewerRadarLayer) {
-          rainviewerMap.removeLayer(rainviewerRadarLayer);
+  init(width, height, randomX = false) {
+    this.x = randomX ? Math.random() * (width + 200) - 100 : -100;
+    this.y = Math.random() * height;
+    this.length = 60 + Math.random() * 100;
+    this.speed = 3 + Math.random() * 4;
+    this.opacity = 0.05 + Math.random() * 0.2;
+    this.lineWidth = 0.5 + Math.random() * 1.2;
+    this.drift = (Math.random() - 0.5) * 0.2;
+    this.freq = 0.01 + Math.random() * 0.02;
+  }
+
+  update(width, height) {
+    this.x += this.speed;
+    this.y += Math.sin(this.x * this.freq) * 0.5 + this.drift;
+    
+    if (this.x > width + this.length) {
+      this.init(width, height);
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    const grad = ctx.createLinearGradient(this.x - this.length, this.y, this.x, this.y);
+    grad.addColorStop(0, "rgba(22, 163, 74, 0)");
+    grad.addColorStop(0.4, `rgba(22, 163, 74, ${this.opacity})`);
+    grad.addColorStop(1, "rgba(22, 163, 74, 0)");
+    
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = this.lineWidth;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(this.x - this.length, this.y);
+    ctx.lineTo(this.x, this.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function getCurrentForecastPeriod() {
+  if (!forecastData || forecastData.list.length === 0) return null;
+
+  const now = Date.now();
+  return forecastData.list.find((period) => (period.dt * 1000) >= now) || forecastData.list[0];
+}
+
+function formatWindDirection(degrees) {
+  if (typeof degrees !== "number" || Number.isNaN(degrees)) return "";
+
+  const directions = ["উত্তর", "উত্তর-পূর্ব", "পূর্ব", "দক্ষিণ-পূর্ব", "দক্ষিণ", "দক্ষিণ-পশ্চিম", "পশ্চিম", "উত্তর-পশ্চিম"];
+  const index = Math.round(degrees / 45) % directions.length;
+  return directions[index];
+}
+
+function formatNumber(value) {
+  return numberFormatter.format(Math.round(value));
+}
+
+function getAverageWindDirection(periods) {
+  if (!periods.length) return null;
+
+  const vectors = periods.reduce((totals, period) => {
+    if (typeof period.wind.deg !== "number" || Number.isNaN(period.wind.deg)) {
+      return totals;
+    }
+
+    const radians = period.wind.deg * Math.PI / 180;
+    totals.sin += Math.sin(radians);
+    totals.cos += Math.cos(radians);
+    totals.count += 1;
+    return totals;
+  }, { sin: 0, cos: 0, count: 0 });
+
+  if (!vectors.count) return null;
+
+  const degrees = Math.atan2(vectors.sin / vectors.count, vectors.cos / vectors.count) * 180 / Math.PI;
+  return (degrees + 360) % 360;
+}
+
+function getAverageWindSpeed(periods) {
+  if (!periods.length) return null;
+
+  const total = periods.reduce((sum, period) => sum + (period.wind.speed || 0), 0);
+  return total / periods.length;
+}
+
+function formatWindSummary(speed, degrees) {
+  if (typeof speed !== "number" || Number.isNaN(speed)) return "";
+
+  const convertedSpeed = isCelsius ? speed * 3.6 : speed * 2.237;
+  const direction = formatWindDirection(degrees);
+  return `${formatNumber(convertedSpeed)} ${isCelsius ? "কিমি/ঘণ্টা" : "মাইল/ঘণ্টা"}${direction ? ` ${direction}` : ""}`;
+}
+
+// Update UI
+function updateUI() {
+  loadingDiv.classList.add("hidden");
+  errorDiv.classList.add("hidden");
+  dashboardContent.classList.remove("hidden");
+
+  renderCurrentWeather();
+  renderChart();
+  renderForecast();
+}
+
+function renderCurrentWeather() {
+  const temp = isCelsius ? weatherData.main.temp : (weatherData.main.temp * 9/5) + 32;
+  currentTempEl.textContent = formatNumber(temp);
+  
+  const iconCode = weatherData.weather[0].icon;
+  currentIconEl.src = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
+  updateWeatherAnimation(weatherData.weather[0], weatherData.main.temp);
+  
+  // OpenWeather current API doesn't always have pop (probability of precipitation)
+  // We'll fallback to the next forecast period.
+  let precip = 0;
+  const currentForecastPeriod = getCurrentForecastPeriod();
+  if (currentForecastPeriod) {
+    precip = Math.round((currentForecastPeriod.pop || 0) * 100);
+  }
+  
+  currentPrecipEl.textContent = `${formatNumber(precip)}%`;
+  currentHumidityEl.textContent = `${formatNumber(weatherData.main.humidity)}%`;
+  
+  const windSpeed = isCelsius ? (weatherData.wind.speed * 3.6) : (weatherData.wind.speed * 2.237);
+  const currentWindDirection = formatWindDirection(
+    weatherData.wind.deg ?? currentForecastPeriod?.wind?.deg
+  );
+  currentWindEl.textContent = `${formatNumber(windSpeed)} ${isCelsius ? 'কিমি/ঘণ্টা' : 'মাইল/ঘণ্টা'}${currentWindDirection ? ` ${currentWindDirection}` : ''}`;
+  
+  cityNameEl.textContent = weatherData.name;
+  
+  const date = new Date(weatherData.dt * 1000);
+  currentDayTimeEl.textContent = date.toLocaleString(locale, {
+    weekday: "long",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+  currentConditionEl.textContent = weatherData.weather[0].description;
+}
+
+function renderChart() {
+  const ctx = document.getElementById('weatherChart').getContext('2d');
+  
+  if (weatherChart) {
+    weatherChart.destroy();
+  }
+
+  // Seven-day forecast sampled every 3 hours for readability.
+  const periods = forecastData.list;
+  
+  // Dynamically set width for scrollable area (60px per point)
+  const chartWrapper = document.getElementById('chart-wrapper');
+  chartWrapper.style.minWidth = `${Math.max(800, periods.length * 60)}px`;
+
+  const labels = periods.map(item => {
+    const date = new Date(item.dt * 1000);
+    return date.toLocaleTimeString(locale, {
+      hour: "numeric",
+      hour12: true
+    });
+  });
+
+  let data = [];
+  let label = "";
+  let bgColor = "rgba(37, 99, 235, 0.1)";
+  let borderColor = "#2563eb";
+
+  if (currentTab === "temperature") {
+    data = periods.map(item => isCelsius ? item.main.temp : (item.main.temp * 9/5) + 32);
+    label = `তাপমাত্রা (${isCelsius ? '°C' : '°F'})`;
+  } else if (currentTab === "precipitation") {
+    data = periods.map(item => (item.pop || 0) * 100);
+    label = "বৃষ্টির সম্ভাবনা (%)";
+    bgColor = "rgba(14, 165, 233, 0.1)";
+    borderColor = "#0ea5e9";
+  } else if (currentTab === "wind") {
+    data = periods.map(item => isCelsius ? (item.wind.speed * 3.6) : (item.wind.speed * 2.237));
+    label = `বাতাসের গতি (${isCelsius ? 'কিমি/ঘণ্টা' : 'মাইল/ঘণ্টা'})`;
+    bgColor = "rgba(22, 163, 74, 0.1)";
+    borderColor = "#16a34a";
+  }
+
+  weatherChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          if (currentTab === "temperature") {
+            gradient.addColorStop(0, 'rgba(255, 99, 71, 0.25)'); // Tomato/Warm
+            gradient.addColorStop(1, 'rgba(37, 99, 235, 0.05)'); // Blue/Cool
+          } else if (currentTab === "precipitation") {
+            gradient.addColorStop(0, 'rgba(14, 165, 233, 0.3)');
+            gradient.addColorStop(1, 'rgba(14, 165, 233, 0)');
+          } else {
+            gradient.addColorStop(0, 'rgba(22, 163, 74, 0.25)');
+            gradient.addColorStop(1, 'rgba(22, 163, 74, 0)');
+          }
+          return gradient;
+        },
+        borderColor: (context) => {
+          if (currentTab !== "temperature") return borderColor;
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return borderColor;
+          const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          gradient.addColorStop(0, '#ef4444'); // Hot
+          gradient.addColorStop(1, '#3b82f6'); // Cold
+          return gradient;
+        },
+        borderWidth: 3,
+        fill: true,
+        tension: 0.45,
+        pointBackgroundColor: "#ffffff",
+        pointBorderColor: borderColor,
+        pointBorderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBorderWidth: 3,
+        pointHoverBackgroundColor: (context) => {
+          if (currentTab === "temperature") return "#ef4444";
+          return borderColor;
         }
-
-        rainviewerRadarLayer = L.tileLayer(tileUrl, {
-          tileSize: 256,
-          opacity: 0.75,
-          zIndex: 10,
-          attribution: '&copy; RainViewer'
-        }).addTo(map);
-
-        map.setView([rainviewerCenter.lat, rainviewerCenter.lon], rainviewerCenter.zoom);
-        invalidateRainviewerMap();
-        updateRainviewerStatus(`সর্বশেষ আপডেট: ${formatDate(new Date(latestFrame.time * 1000))}`);
-      } catch (error) {
-        console.error("Unable to load RainViewer radar:", error);
-        updateRainviewerStatus("এই মুহূর্তে RainViewer রাডার লোড করা যাচ্ছে না।");
-      }
-    }
-
-    function renderFeedGroups() {
-      Object.values(groupTargets).forEach((target) => { target.innerHTML = ""; });
-
-      feeds.forEach((feed) => {
-        const button = document.createElement("button");
-        button.type = "button"; button.className = "feed-button"; button.dataset.feedId = feed.id;
-        button.innerHTML = `${feed.name}<span>${feed.description}</span>`;
-        button.addEventListener("click", () => {
-          if (activeFeedId !== feed.id) {
-            activeFeedId = feed.id;
-            updateFeedDisplay();
-            loadActiveFeed();
-            // Scroll automatically to top on mobile when switching feed
-            if(window.innerWidth <= 1023) {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      hover: {
+        mode: 'index',
+        intersect: false
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          position: 'nearest',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          titleColor: '#1a1c1e',
+          bodyColor: '#1a1c1e',
+          borderColor: '#e1e2ec',
+          borderWidth: 1,
+          padding: 12,
+          boxPadding: 6,
+          usePointStyle: true,
+          titleFont: { size: 14, weight: '600' },
+          bodyFont: { size: 13 },
+          cornerRadius: 12,
+          displayColors: false,
+          callbacks: {
+            label: function(context) {
+              let val = formatNumber(context.parsed.y);
+              let unit = "";
+              if (currentTab === "temperature") unit = isCelsius ? "°C" : "°F";
+              else if (currentTab === "precipitation") unit = "%";
+              else unit = isCelsius ? " কিমি/ঘ" : " মাইল/ঘ";
+              return `${context.dataset.label}: ${val}${unit}`;
             }
           }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: false },
+          ticks: { 
+            color: "#667085", 
+            font: { size: 11, weight: '500' },
+            maxRotation: 0,
+            autoSkip: true,
+            padding: 8
+          }
+        },
+        y: {
+          display: false,
+          min: Math.min(...data) - (currentTab === "temperature" ? 8 : 2),
+          max: Math.max(...data) + (currentTab === "temperature" ? 8 : 15)
+        }
+      },
+      layout: {
+        padding: { top: 35, bottom: 10 }
+      },
+      animation: {
+        duration: 1000,
+        easing: 'easeOutQuart'
+      }
+    },
+    plugins: [{
+      id: 'crosshair',
+      afterDraw: (chart) => {
+        if (chart.tooltip?._active?.length) {
+          const {ctx} = chart;
+          const {top, bottom} = chart.chartArea;
+          const activePoint = chart.tooltip._active[0];
+          const {x} = activePoint.element;
+          
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([5, 5]);
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(0, 90, 193, 0.4)';
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }, {
+      id: 'topLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx, data } = chart;
+        ctx.save();
+        ctx.font = '600 12px Hind Siliguri';
+        ctx.fillStyle = '#1A1B1F';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((point, index) => {
+          const value = formatNumber(data.datasets[0].data[index]);
+          if (currentTab === "wind") {
+            const windDir = formatWindDirection(periods[index].wind.deg);
+            ctx.fillText(value, point.x, point.y - 28);
+            ctx.font = '500 10px Hind Siliguri';
+            ctx.fillStyle = '#44474E';
+            ctx.fillText(windDir, point.x, point.y - 12);
+            ctx.font = '600 12px Hind Siliguri';
+            ctx.fillStyle = '#1A1B1F';
+          } else {
+            ctx.fillText(value + (currentTab === "precipitation" ? "%" : "°"), point.x, point.y - 10);
+          }
         });
-        groupTargets[feed.group].appendChild(button);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Handle Chart Rain Effect
+  if (currentTab === "precipitation") {
+    if (!chartRainRenderer && chartRainCanvasEl) {
+      chartRainRenderer = new RainRenderer(chartRainCanvasEl);
+    }
+    
+    if (chartRainRenderer) {
+      chartRainRenderer.setClipPath((ctx) => {
+        const meta = weatherChart.getDatasetMeta(0);
+        const points = meta.data;
+        const yScale = weatherChart.scales.y;
+        
+        if (points.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(points[0].x, yScale.bottom);
+          points.forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(points[points.length - 1].x, yScale.bottom);
+          ctx.closePath();
+        }
       });
+      chartRainRenderer.start();
     }
+  } else {
+    chartRainRenderer?.stop();
+  }
 
-    function updateFeedDisplay() {
-      const activeFeed = getFeedById(activeFeedId);
-      viewerTitle.textContent = activeFeed.name; 
-      viewerDescription.textContent = activeFeed.description;
-
-      document.querySelectorAll(".feed-button").forEach((button) => {
-        button.classList.toggle("active", button.dataset.feedId === activeFeedId);
+  // Handle Chart Wind Effect
+  if (currentTab === "wind") {
+    if (!chartWindRenderer && chartWindCanvasEl) {
+      chartWindRenderer = new WindRenderer(chartWindCanvasEl);
+    }
+    
+    if (chartWindRenderer) {
+      chartWindRenderer.setClipPath((ctx) => {
+        const meta = weatherChart.getDatasetMeta(0);
+        const points = meta.data;
+        const yScale = weatherChart.scales.y;
+        
+        if (points.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(points[0].x, yScale.bottom);
+          points.forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.lineTo(points[points.length - 1].x, yScale.bottom);
+          ctx.closePath();
+        }
       });
+      chartWindRenderer.start();
     }
+  } else {
+    chartWindRenderer?.stop();
+  }
+}
 
-    function setLoadingState(message) {
-      loadingMessage.hidden = false; 
-      loadingMessage.innerHTML = `<i class="fa-solid fa-spinner fa-spin fa-icon"></i> ${message}`; 
-      mainImage.hidden = true;
-    }
-
-    function setOfflineState() {
-      const offlineMessage = '<i class="fa-solid fa-wifi" style="text-decoration: line-through; margin-right:5px;"></i> আপনার ইন্টারনেট সংযোগ নেই।';
-      appPage.hidden = true; offlineScreen.hidden = false;
-      loadingMessage.hidden = false; loadingMessage.innerHTML = offlineMessage; 
-      mainImage.hidden = true;
-    }
-
-    function setOnlineState() { offlineScreen.hidden = true; appPage.hidden = false; }
-
-    // Toggle panels for mobile
-    function setMobilePanel(panelId) {
-      mobileNavButtons.forEach((button) => { 
-        button.classList.toggle("active", button.dataset.mobilePanel === panelId); 
-      });
-      mobileSections.forEach((panel) => { 
-        panel.classList.toggle("mobile-active", panel.dataset.mobileGroup === panelId); 
-      });
-      if (panelId === "radar-view") invalidateRainviewerMap();
-    }
-
-    function startAutoRefresh() {
-      if (refreshTimer) window.clearInterval(refreshTimer);
-      refreshTimer = window.setInterval(() => {
-        loadActiveFeed();
-        loadRainviewerRadar();
-      }, refreshIntervalMs);
-    }
-
-    function loadActiveFeed() {
-      if (!navigator.onLine) { setOfflineState(); return; }
-      setOnlineState();
-
-      const activeFeed = getFeedById(activeFeedId);
-      const cacheBustedUrl = `${activeFeed.url}${activeFeed.url.includes("?") ? "&" : "?"}t=${Date.now()}`;
-
-      setLoadingState(`${activeFeed.name} সংগ্রহ করা হচ্ছে...`);
-
-      const probe = new Image();
-      probe.onload = () => {
-        mainImage.src = cacheBustedUrl; mainImage.alt = `${activeFeed.name} weather image`; 
-        mainImage.hidden = false; loadingMessage.hidden = true;
+function renderForecastLegacy() {
+  forecastContainer.innerHTML = '';
+  
+  // Group by day
+  const dailyData = {};
+  forecastData.list.forEach((item, index) => {
+    const date = new Date(item.dt * 1000);
+    const dayName = date.toLocaleDateString(locale, { weekday: 'short' });
+    
+    if (!dailyData[dayName]) {
+      dailyData[dayName] = {
+        temps: [],
+        icon: item.weather[0].icon,
+        firstIndex: index
       };
-
-      probe.onerror = () => {
-        loadingMessage.hidden = false; 
-        loadingMessage.innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-icon"></i> এই মুহূর্তে ছবিটি পাওয়া যাচ্ছে না। অনুগ্রহ করে পুনরায় চেষ্টা করুন।';
-        mainImage.hidden = true;
-      };
-
-      probe.src = cacheBustedUrl;
     }
+    dailyData[dayName].temps.push(item.main.temp);
+  });
 
-    refreshButton.addEventListener("click", () => {
-      loadActiveFeed();
-      loadRainviewerRadar();
+  const days = Object.keys(dailyData).slice(0, 5); // Legacy renderer retained only for reference.
+  
+  days.forEach((day, index) => {
+    const data = dailyData[day];
+    const maxTemp = Math.max(...data.temps);
+    const minTemp = Math.min(...data.temps);
+    
+    const displayMax = formatNumber(isCelsius ? maxTemp : (maxTemp * 9/5) + 32);
+    const displayMin = formatNumber(isCelsius ? minTemp : (minTemp * 9/5) + 32);
+    
+    const card = document.createElement("div");
+    card.className = `forecast-card ${index === 0 ? 'active' : ''}`;
+    
+    card.innerHTML = `
+      <div class="forecast-day">${day}</div>
+      <img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="আইকন" class="forecast-icon">
+      <div class="forecast-temps">
+        <span class="temp-high">${displayMax}°</span>
+        <span class="temp-low">${displayMin}°</span>
+      </div>
+    `;
+    
+    card.addEventListener('click', () => {
+      // Update active state
+      document.querySelectorAll('.forecast-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      
+      // Scroll the chart to this day's first forecast point
+      const chartContainer = document.querySelector('.chart-container');
+      const chartWrapper = document.getElementById('chart-wrapper');
+      
+      const totalPoints = forecastData.list.length;
+      // Calculate how wide each point is on the screen
+      const pointWidth = chartWrapper.scrollWidth / totalPoints;
+      
+      // Scroll to that position smoothly
+      chartContainer.scrollTo({
+        left: data.firstIndex * pointWidth,
+        behavior: 'smooth'
+      });
     });
     
-    // Add event listeners to mobile nav tabs
-    mobileNavButtons.forEach((button) => { 
-      button.addEventListener("click", () => {
-        setMobilePanel(button.dataset.mobilePanel);
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll top when changing tab
-      }); 
-    });
-    
-    window.addEventListener("offline", setOfflineState);
-    window.addEventListener("online", () => { setOnlineState(); getCurrentWeather(); loadActiveFeed(); loadRainviewerRadar(); });
+    forecastContainer.appendChild(card);
+  });
+}
 
-    renderFeedGroups(); 
-    updateFeedDisplay(); 
-    startAutoRefresh(); 
-    setMobilePanel("weather-view"); // Initialize "আবহাওয়া" tab active for mobile initially
-    
-    if (navigator.onLine) {
-      setOnlineState(); getCurrentWeather(); loadActiveFeed(); loadRainviewerRadar();
-    } else {
-      setOfflineState(); updateWeatherSummary({
-        tempText: "সংযোগ নেই", windText: "সংযোগ নেই", conditionText: "সংযোগ নেই", windDirText: "সংযোগ নেই", precipText: "সংযোগ নেই", sunriseText: "সংযোগ নেই", sunsetText: "সংযোগ নেই"
+function renderForecastDraft() {
+  forecastContainer.innerHTML = '';
+
+  forecastData.daily.slice(0, 7).forEach((data, index) => {
+    const displayMax = formatNumber(isCelsius ? data.maxTemp : (data.maxTemp * 9/5) + 32);
+    const displayMin = formatNumber(isCelsius ? data.minTemp : (data.minTemp * 9/5) + 32);
+
+    const card = document.createElement("div");
+    card.className = `forecast-card ${index === 0 ? 'active' : ''}`;
+
+    card.innerHTML = `
+      <div class="forecast-day">${data.day}</div>
+      <img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="আইকন" class="forecast-icon">
+      <div class="forecast-temps">
+        <span class="temp-high">${displayMax}Â°</span>
+        <span class="temp-low">${displayMin}Â°</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.forecast-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+
+      const chartContainer = document.querySelector('.chart-container');
+      const chartWrapper = document.getElementById('chart-wrapper');
+      const totalPoints = forecastData.list.length;
+      const pointWidth = chartWrapper.scrollWidth / totalPoints;
+
+      chartContainer.scrollTo({
+        left: data.firstIndex * pointWidth,
+        behavior: 'smooth'
       });
-      updateRainviewerStatus("ইন্টারনেট সংযোগ না থাকায় RainViewer রাডার দেখানো যাচ্ছে না।");
-    }
+    });
+
+    forecastContainer.appendChild(card);
+  });
+}
+
+function renderForecast() {
+  forecastContainer.innerHTML = '';
+
+  forecastData.daily.slice(0, 7).forEach((data, index) => {
+    const displayMax = formatNumber(isCelsius ? data.maxTemp : (data.maxTemp * 9/5) + 32);
+    const displayMin = formatNumber(isCelsius ? data.minTemp : (data.minTemp * 9/5) + 32);
+
+    const card = document.createElement("div");
+    card.className = `forecast-card ${index === 0 ? 'active' : ''}`;
+
+    card.innerHTML = `
+      <div class="forecast-day">${data.day}</div>
+      <img src="https://openweathermap.org/img/wn/${data.icon}.png" alt="আইকন" class="forecast-icon">
+      <div class="forecast-temps">
+        <span class="temp-high">${displayMax}&deg;</span>
+        <span class="temp-low">${displayMin}&deg;</span>
+      </div>
+      <div class="forecast-wind">${formatWindSummary(data.windSpeed, data.windDeg)}</div>
+    `;
+
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.forecast-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+
+      const chartContainer = document.querySelector('.chart-container');
+      const chartWrapper = document.getElementById('chart-wrapper');
+      const totalPoints = forecastData.list.length;
+      const pointWidth = chartWrapper.scrollWidth / totalPoints;
+
+      chartContainer.scrollTo({
+        left: data.firstIndex * pointWidth,
+        behavior: 'smooth'
+      });
+    });
+
+    forecastContainer.appendChild(card);
+  });
+}
+
+function showLoading() {
+  dashboardContent.classList.add("hidden");
+  errorDiv.classList.add("hidden");
+  loadingDiv.classList.remove("hidden");
+}
+
+function showError(msg) {
+  dashboardContent.classList.add("hidden");
+  loadingDiv.classList.add("hidden");
+  errorDiv.textContent = msg;
+  errorDiv.classList.remove("hidden");
+}
+
   </script>
 </body>
 </html>
